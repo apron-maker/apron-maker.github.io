@@ -1041,8 +1041,9 @@ async function loadWorkload(){
       const res=await fetch(url,{redirect:"follow"}); if(!res.ok) throw 0;
       const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text.slice(0,200))) throw 0;
       const map=parseWorkloadCSV(text);  // кине помилку, якщо це не таблиця завантаженості (напр. «Проєкти»)
-      // НЕ затираємо: оновлюємо/додаємо записи з живої таблиці, решту (зі знімка) лишаємо.
-      // Живий парсер читає «?», проєкти по тижнях і дужкові суфікси в іменах.
+      // жива «АР» = повний актуальний склад: ПОВНІСТЮ замінюємо, щоб і додавання, і видалення
+      // людей у таблиці підтягувались у застосунок. Живий парсер читає «?», проєкти й суфікси в іменах.
+      for(const k in WL_MAP) delete WL_MAP[k];
       Object.assign(WL_MAP,map);
       wlState="live"; return;
     }catch(e){}
@@ -1281,18 +1282,22 @@ document.getElementById("copyTeam").onclick=()=>{
 };
 
 /* ---------- person modal ---------- */
-let _cardPW=[], _cardProjLine="";
-window.wlHover=function(el,i){
+let _cardPW=[], _cardProjLine="", _cardSelWi=-1;
+function wlDefaultLine(){ const box=document.getElementById("wlProjLine"); if(box) box.innerHTML=_cardProjLine + (_cardPW.length?` <span style="color:var(--mut);font-weight:400">· натисни на тиждень, щоб побачити проєкти</span>`:""); }
+window.wlPick=function(el,i){
+  const strip=el.closest(".wl-strip");
+  // повторний клік по тому ж тижню — зняти виділення
+  if(_cardSelWi===i){ _cardSelWi=-1; if(strip) strip.querySelectorAll(".wl-cell").forEach(c=>c.classList.remove("wl-hot")); wlDefaultLine(); return; }
+  _cardSelWi=i;
+  if(strip) strip.querySelectorAll(".wl-cell").forEach(c=>c.classList.remove("wl-hot"));
   el.classList.add("wl-hot");
   const box=document.getElementById("wlProjLine"); if(!box) return;
   const pw=_cardPW||[];
   const active=pw.filter(x=>{ const v=x.w[i]; return v==="vac" || v==="?" || (typeof v==="number" && v>0); });
   const wk=WL_WEEKS[i];
-  if(!pw.length){ return; }
   if(!active.length){ box.innerHTML=`<b>${esc(wk)}:</b> <span style="color:var(--ok)">вільний тиждень</span>`; return; }
   box.innerHTML=`<b>${esc(wk)}:</b> `+active.map(x=>{ const v=x.w[i]; const tag = v==="vac" ? "відпустка/лікарняний" : v==="?" ? "потенційно" : (Math.round(v*100)+"%"); const cl = v==="vac"?"wl-projtag off":v==="?"?"wl-projtag maybe":"wl-projtag"; return `<span class="${cl}">${esc(x.n)} · ${tag}</span>`; }).join(" ");
 };
-window.wlHoverOut=function(el){ el.classList.remove("wl-hot"); const box=document.getElementById("wlProjLine"); if(box) box.innerHTML=_cardProjLine + (_cardPW.length?` <span style="color:var(--mut);font-weight:400">· наведи на тиждень, щоб побачити проєкти</span>`:""); };
 window.openP=function(id){
   const p=PEOPLE.find(x=>x.id===id); if(!p) return;
   const box=document.getElementById("modalBox");
@@ -1310,7 +1315,7 @@ window.openP=function(id){
       const inRange = !(WL_ENDS[i]<state.from || WL_STARTS[i]>state.to);
       const dark = (st.type==="none"||st.type==="office");
       const past = i<pastCut; if(past) pastN++;
-      cells+=`<div class="wl-cell ${st.type}${inRange?' inr':''}${past?' wl-past':''}" data-wi="${i}" onmouseover="wlHover(this,${i})" onmouseout="wlHoverOut(this)" style="background:${availColor(st.type)};color:${dark?'#aab4cc':'#08111f'}" title="${esc(WL_WEEKS[i])} · ${st.type==='office'?'офіс не працює':AVAIL_LABEL[st.type]}"><span class="wd">${esc(wk)}</span><span class="wv">${txt}</span></div>`;
+      cells+=`<div class="wl-cell ${st.type}${inRange?' inr':''}${past?' wl-past':''}" data-wi="${i}" onclick="wlPick(this,${i})" style="background:${availColor(st.type)};color:${dark?'#aab4cc':'#08111f'};cursor:pointer" title="${esc(WL_WEEKS[i])} · ${st.type==='office'?'офіс не працює':AVAIL_LABEL[st.type]} · натисни, щоб побачити проєкти"><span class="wd">${esc(wk)}</span><span class="wv">${txt}</span></div>`;
     });
     const histToggle = pastN>0 ? `<button class="wl-hist-btn" onclick="this.closest('.wl').querySelector('.wl-strip').classList.toggle('showhist'); this.classList.toggle('on'); this.textContent=this.classList.contains('on')?'▸ згорнути минулі (${pastN})':'◂ показати минулі тижні (${pastN})';">◂ показати минулі тижні (${pastN})</button>` : "";
     const rs=rangeStatus(p);
@@ -1325,7 +1330,8 @@ window.openP=function(id){
     `</div>`;
     _cardPW = p.load.projectWeeks||[];
     _cardProjLine = p.load.projects&&p.load.projects.length ? `<b>Проєкти:</b> ${esc(p.load.projects.join("; "))}` : (_cardPW.length?`<b>Проєкти:</b> ${esc(_cardPW.map(x=>x.n).join("; "))}`:"");
-    const projHint = _cardPW.length ? ` <span style="color:var(--mut);font-weight:400">· наведи на тиждень, щоб побачити проєкти</span>` : "";
+    _cardSelWi=-1;
+    const projHint = _cardPW.length ? ` <span style="color:var(--mut);font-weight:400">· натисни на тиждень, щоб побачити проєкти</span>` : "";
     wl=`<div class="wl"><div class="wlh">Завантаженість по тижнях <span style="color:var(--txt);text-transform:none;font-weight:400">· за період ${esc(state.from)} — ${esc(state.to)}: <b style="color:${availColor(rs.type)}">${rsTxt}</b></span>${histToggle}</div><div class="wl-strip">${cells}</div>${wlLegend}${_cardProjLine||_cardPW.length?`<div class="wl-proj" id="wlProjLine">${_cardProjLine}${projHint}</div>`:""}</div>`;
   } else {
     wl=`<div class="wl"><div class="wlh">Завантаженість по тижнях</div><div style="color:var(--mut);font-size:12.5px">Немає даних у таблиці розподілу ресурсів.</div></div>`;
