@@ -327,6 +327,34 @@ const {
 } = React;
 const XLSX = window.XLSX;
 const RAW = JSON.parse(document.getElementById("baked-data").textContent);
+const LS_KEY = "wsjf_state_v2";
+function lsSave(o) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(o));
+  } catch (e) {}
+}
+function lsLoad() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    return s ? JSON.parse(s) : null;
+  } catch (e) {
+    return null;
+  }
+}
+function hashParam(name) {
+  try {
+    const h = (location.hash || "").replace(/^#/, "");
+    const m = h.match(new RegExp("(?:^|&)" + name + "=([^&]+)"));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch (e) {
+    return null;
+  }
+}
+function setHashSrc(url) {
+  try {
+    if (url) location.hash = "src=" + encodeURIComponent(url);
+  } catch (e) {}
+}
 const C = {
   bg: "#F7F6F2",
   surface: "#FFFFFF",
@@ -1116,7 +1144,7 @@ function ImportModal(p) {
       const rows = await fetchSheetRows(g.id, g.gid);
       const recs = rowsToRecords(rows);
       if (!recs.length) throw new Error("не знайдено рядків з проектами");
-      p.onLoaded(recs, "Google Sheet · " + new Date().toLocaleDateString("uk-UA"));
+      p.onLoaded(recs, "Google Sheet · " + new Date().toLocaleDateString("uk-UA"), url.trim());
     } catch (e) {
       setErr("Не вдалося прочитати за посиланням. Найчастіше — таблиця не відкрита «Будь-хто з посиланням» або доступ блокує організація. Відкрий доступ на перегляд, або встав дані текстом нижче. (" + e.message + ")");
     } finally {
@@ -2593,20 +2621,51 @@ function CompareView(p) {
 }
 // ── Main ──
 function App() {
+  const saved = lsLoad();
+  const hSrc = hashParam("src");
   const [data, setData] = useState(function () {
-    return computeDerived(RAW.slice());
+    return saved && saved.data && saved.data.length ? saved.data : computeDerived(RAW.slice());
   });
-  const [fileName, setFileName] = useState("Пріоритезація_WSJF · 11.09.2026");
-  const [excludeList, setExcludeList] = useState([]);
+  const [fileName, setFileName] = useState(saved && saved.fileName || "Пріоритезація_WSJF · 25.09.2026");
+  const [srcUrl, setSrcUrl] = useState(hSrc || saved && saved.srcUrl || "");
+  const [dataManual, setDataManual] = useState(saved ? !!saved.manual : false);
+  const [copied, setCopied] = useState(false);
+  const [excludeList, setExcludeList] = useState(saved && saved.excludeList || []);
   const [excludeInput, setExcludeInput] = useState("");
-  const [topN, setTopN] = useState(30);
-  const [notes, setNotes] = useState({});
+  const [topN, setTopN] = useState(saved && saved.topN || 30);
+  const [notes, setNotes] = useState(saved && saved.notes || {});
   const [noteInput, setNoteInput] = useState({
     project: "",
     text: ""
   });
   const [tab, setTab] = useState("top");
   const [showImport, setShowImport] = useState(false);
+  // Зберігаємо все локально — оновлення сторінки (F5) не скидає завантажене
+  useEffect(function () {
+    lsSave({
+      data: data,
+      fileName: fileName,
+      srcUrl: srcUrl,
+      manual: dataManual,
+      excludeList: excludeList,
+      topN: topN,
+      notes: notes
+    });
+  }, [data, fileName, srcUrl, dataManual, excludeList, topN, notes]);
+  // Якщо у посиланні є #src (поділились командою) — підвантажуємо ту саму таблицю
+  useEffect(function () {
+    if (!hSrc) return;
+    const g = parseGoogleUrl(hSrc);
+    if (!g) return;
+    fetchSheetRows(g.id, g.gid).then(function (recs) {
+      if (recs && recs.length) {
+        setData(recs);
+        setFileName("Спільна таблиця · " + new Date().toLocaleDateString("uk-UA"));
+        setSrcUrl(hSrc);
+        setDataManual(true);
+      }
+    }).catch(function () {});
+  }, []);
   const processFile = useCallback(function (file) {
     const reader = new FileReader();
     reader.onload = function (e) {
@@ -2614,6 +2673,7 @@ function App() {
         const parsed = parseXlsx(new Uint8Array(e.target.result));
         setData(parsed);
         setFileName(file.name);
+        setDataManual(true);
         setShowImport(false);
       } catch (err) {
         alert("Помилка: " + err.message);
@@ -2621,10 +2681,45 @@ function App() {
     };
     reader.readAsArrayBuffer(file);
   }, []);
-  const onLoaded = function (recs, label) {
+  const onLoaded = function (recs, label, url) {
     setData(recs);
     setFileName(label);
+    setDataManual(true);
+    if (url) {
+      setSrcUrl(url);
+      setHashSrc(url);
+    }
     setShowImport(false);
+  };
+  const copyTeamLink = function () {
+    if (!srcUrl) {
+      alert("Спільне посилання працює, коли дані завантажені за Google-посиланням (не з .xlsx). Завантаж таблицю через «Оновити таблицю» → посилання, і кнопка запрацює.");
+      return;
+    }
+    const link = location.origin + location.pathname + "#src=" + encodeURIComponent(srcUrl);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link).then(function () {
+        setCopied(true);
+        setTimeout(function () {
+          setCopied(false);
+        }, 2000);
+      }, function () {
+        prompt("Скопіюй посилання для команди:", link);
+      });
+    } else {
+      prompt("Скопіюй посилання для команди:", link);
+    }
+  };
+  const resetLocal = function () {
+    if (confirm("Скинути збережені дані й повернутись до базових?")) {
+      try {
+        localStorage.removeItem(LS_KEY);
+      } catch (e) {}
+      try {
+        location.hash = "";
+      } catch (e) {}
+      location.reload();
+    }
   };
   const addExclude = function () {
     const kw = excludeInput.trim();
@@ -2822,7 +2917,33 @@ function App() {
       color: "#fff",
       fontWeight: 600
     }
-  }, "\uD83D\uDD04 \u041E\u043D\u043E\u0432\u0438\u0442\u0438 \u0442\u0430\u0431\u043B\u0438\u0446\u044E"), /*#__PURE__*/React.createElement("input", {
+  }, "\uD83D\uDD04 \u041E\u043D\u043E\u0432\u0438\u0442\u0438 \u0442\u0430\u0431\u043B\u0438\u0446\u044E"), /*#__PURE__*/React.createElement("button", {
+    onClick: copyTeamLink,
+    title: "\u0421\u043A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u043F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F \u0437 \u0434\u0430\u043D\u0438\u043C\u0438, \u0449\u043E\u0431 \u043F\u043E\u0434\u0456\u043B\u0438\u0442\u0438\u0441\u044C \u0437 \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u044E",
+    style: {
+      fontSize: 11,
+      padding: "6px 14px",
+      border: "1px solid " + C.border,
+      borderRadius: 7,
+      background: copied ? C.green : C.surface,
+      cursor: "pointer",
+      color: copied ? "#fff" : C.text,
+      fontWeight: 600
+    }
+  }, copied ? "✓ Скопійовано" : "🔗 Посилання для команди"), /*#__PURE__*/React.createElement("button", {
+    onClick: resetLocal,
+    title: "\u0421\u043A\u0438\u043D\u0443\u0442\u0438 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u0435 \u0439 \u043F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u0438\u0441\u044C \u0434\u043E \u0431\u0430\u0437\u043E\u0432\u0438\u0445 \u0434\u0430\u043D\u0438\u0445",
+    style: {
+      fontSize: 11,
+      padding: "6px 12px",
+      border: "1px solid " + C.border,
+      borderRadius: 7,
+      background: C.surface,
+      cursor: "pointer",
+      color: C.muted,
+      fontWeight: 600
+    }
+  }, "\u21BA"), /*#__PURE__*/React.createElement("input", {
     id: "fi_main",
     type: "file",
     accept: ".xlsx,.xls",
