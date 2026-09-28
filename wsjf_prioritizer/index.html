@@ -331,7 +331,10 @@ const LS_KEY = "wsjf_state_v2";
 function lsSave(o) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(o));
-  } catch (e) {}
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 function lsLoad() {
   try {
@@ -2622,14 +2625,14 @@ function CompareView(p) {
 // ── Main ──
 function App() {
   const saved = lsLoad();
-  const hSrc = hashParam("src");
   const [data, setData] = useState(function () {
     return saved && saved.data && saved.data.length ? saved.data : computeDerived(RAW.slice());
   });
   const [fileName, setFileName] = useState(saved && saved.fileName || "Пріоритезація_WSJF · 25.09.2026");
-  const [srcUrl, setSrcUrl] = useState(hSrc || saved && saved.srcUrl || "");
+  const [srcUrl, setSrcUrl] = useState(saved && saved.srcUrl || "");
   const [dataManual, setDataManual] = useState(saved ? !!saved.manual : false);
   const [copied, setCopied] = useState(false);
+  const [savedAt, setSavedAt] = useState(saved ? "restored" : "");
   const [excludeList, setExcludeList] = useState(saved && saved.excludeList || []);
   const [excludeInput, setExcludeInput] = useState("");
   const [topN, setTopN] = useState(saved && saved.topN || 30);
@@ -2638,33 +2641,50 @@ function App() {
     project: "",
     text: ""
   });
-  const [tab, setTab] = useState("top");
+  const [tab, setTab] = useState(saved && saved.tab || "top");
   const [showImport, setShowImport] = useState(false);
-  // Зберігаємо все локально — оновлення сторінки (F5) не скидає завантажене
+  // Зберігаємо ВСЕ локально на цьому пристрої — оновлення сторінки (F5) нічого не скидає
+  const firstSave = React.useRef(true);
   useEffect(function () {
-    lsSave({
+    var ok = lsSave({
       data: data,
       fileName: fileName,
       srcUrl: srcUrl,
       manual: dataManual,
       excludeList: excludeList,
       topN: topN,
-      notes: notes
+      notes: notes,
+      tab: tab
     });
-  }, [data, fileName, srcUrl, dataManual, excludeList, topN, notes]);
-  // Якщо у посиланні є #src (поділились командою) — підвантажуємо ту саму таблицю
+    if (firstSave.current) {
+      firstSave.current = false;
+      return;
+    }
+    if (ok) setSavedAt("saved");else setSavedAt("err");
+  }, [data, fileName, srcUrl, dataManual, excludeList, topN, notes, tab]);
+  // Спільні дані для команди: читаємо data.json з того ж домену (GitHub). Ніколи не блокується.
+  // Вантажимо ЛИШЕ якщо користувач сам нічого не завантажував на цьому пристрої — і лише валідні дані.
   useEffect(function () {
-    if (!hSrc) return;
-    const g = parseGoogleUrl(hSrc);
-    if (!g) return;
-    fetchSheetRows(g.id, g.gid).then(function (recs) {
-      if (recs && recs.length) {
+    if (saved && saved.manual) return;
+    let alive = true;
+    fetch("data.json?ts=" + Date.now(), {
+      cache: "no-store"
+    }).then(function (r) {
+      return r.ok ? r.json() : null;
+    }).then(function (j) {
+      if (!alive || !j || !Array.isArray(j) || !j.length) return;
+      var recs = j[0] && j[0].wsjf !== undefined ? j : computeDerived(j.slice());
+      var real = recs.filter(function (x) {
+        return x && x.project;
+      });
+      if (real.length) {
         setData(recs);
-        setFileName("Спільна таблиця · " + new Date().toLocaleDateString("uk-UA"));
-        setSrcUrl(hSrc);
-        setDataManual(true);
+        setFileName("Дані команди · оновлено " + new Date().toLocaleDateString("uk-UA"));
       }
     }).catch(function () {});
+    return function () {
+      alive = false;
+    };
   }, []);
   const processFile = useCallback(function (file) {
     const reader = new FileReader();
@@ -2673,6 +2693,7 @@ function App() {
         const parsed = parseXlsx(new Uint8Array(e.target.result));
         setData(parsed);
         setFileName(file.name);
+        setSrcUrl("");
         setDataManual(true);
         setShowImport(false);
       } catch (err) {
@@ -2684,19 +2705,12 @@ function App() {
   const onLoaded = function (recs, label, url) {
     setData(recs);
     setFileName(label);
+    if (url !== undefined) setSrcUrl(url || "");
     setDataManual(true);
-    if (url) {
-      setSrcUrl(url);
-      setHashSrc(url);
-    }
     setShowImport(false);
   };
   const copyTeamLink = function () {
-    if (!srcUrl) {
-      alert("Спільне посилання працює, коли дані завантажені за Google-посиланням (не з .xlsx). Завантаж таблицю через «Оновити таблицю» → посилання, і кнопка запрацює.");
-      return;
-    }
-    const link = location.origin + location.pathname + "#src=" + encodeURIComponent(srcUrl);
+    const link = location.origin + location.pathname;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(link).then(function () {
         setCopied(true);
@@ -2710,13 +2724,28 @@ function App() {
       prompt("Скопіюй посилання для команди:", link);
     }
   };
+  const exportDataJson = function () {
+    try {
+      var blob = new Blob([JSON.stringify(data)], {
+        type: "application/json"
+      });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "data.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () {
+        URL.revokeObjectURL(a.href);
+      }, 1000);
+    } catch (e) {
+      alert("Не вдалося зберегти data.json: " + e.message);
+    }
+  };
   const resetLocal = function () {
     if (confirm("Скинути збережені дані й повернутись до базових?")) {
       try {
         localStorage.removeItem(LS_KEY);
-      } catch (e) {}
-      try {
-        location.hash = "";
       } catch (e) {}
       location.reload();
     }
@@ -2903,7 +2932,39 @@ function App() {
       color: C.text,
       fontWeight: 500
     }
-  }, fileName)), /*#__PURE__*/React.createElement("button", {
+  }, fileName)), savedAt && /*#__PURE__*/React.createElement("div", {
+    title: "\u0423\u0441\u0456 \u0434\u0430\u043D\u0456 \u0442\u0430 \u043D\u0430\u043B\u0430\u0448\u0442\u0443\u0432\u0430\u043D\u043D\u044F \u0437\u0431\u0435\u0440\u0456\u0433\u0430\u044E\u0442\u044C\u0441\u044F \u0443 \u0446\u044C\u043E\u043C\u0443 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0456 \u0439 \u0432\u0456\u0434\u043D\u043E\u0432\u043B\u044E\u044E\u0442\u044C\u0441\u044F \u043F\u0456\u0441\u043B\u044F \u043E\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044F \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438",
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      background: savedAt === "err" ? C.redSoft : C.greenSoft,
+      border: "1px solid " + (savedAt === "err" ? C.red : C.green),
+      borderRadius: 7,
+      padding: "5px 9px",
+      fontSize: 10,
+      color: savedAt === "err" ? C.red : C.green,
+      fontWeight: 600
+    }
+  }, savedAt === "err" ? "⚠ не збережено" : "✓ збережено локально"), srcUrl && /*#__PURE__*/React.createElement("a", {
+    href: srcUrl,
+    target: "_blank",
+    rel: "noopener",
+    title: srcUrl,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      background: C.blueSoft,
+      border: "1px solid " + C.blueLight,
+      borderRadius: 7,
+      padding: "5px 9px",
+      fontSize: 10,
+      color: C.blue,
+      fontWeight: 600,
+      textDecoration: "none"
+    }
+  }, "\uD83D\uDD17 \u0434\u0436\u0435\u0440\u0435\u043B\u043E"), /*#__PURE__*/React.createElement("button", {
     onClick: function () {
       setShowImport(true);
     },
@@ -2918,8 +2979,21 @@ function App() {
       fontWeight: 600
     }
   }, "\uD83D\uDD04 \u041E\u043D\u043E\u0432\u0438\u0442\u0438 \u0442\u0430\u0431\u043B\u0438\u0446\u044E"), /*#__PURE__*/React.createElement("button", {
+    onClick: exportDataJson,
+    title: "\u0417\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u043F\u043E\u0442\u043E\u0447\u043D\u0456 \u0434\u0430\u043D\u0456 \u044F\u043A data.json \u2014 \u0437\u0430\u0432\u0430\u043D\u0442\u0430\u0436 \u0446\u0435\u0439 \u0444\u0430\u0439\u043B \u0443 GitHub-\u0440\u0435\u043F\u043E\u0437\u0438\u0442\u043E\u0440\u0456\u0439 \u043F\u043E\u0440\u044F\u0434 \u0437 HTML, \u0449\u043E\u0431 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0431\u0430\u0447\u0438\u043B\u0430 \u0446\u0456 \u0434\u0430\u043D\u0456",
+    style: {
+      fontSize: 11,
+      padding: "6px 14px",
+      border: "1px solid " + C.border,
+      borderRadius: 7,
+      background: C.surface,
+      cursor: "pointer",
+      color: C.text,
+      fontWeight: 600
+    }
+  }, "\uD83D\uDCBE data.json \u0434\u043B\u044F \u043A\u043E\u043C\u0430\u043D\u0434\u0438"), /*#__PURE__*/React.createElement("button", {
     onClick: copyTeamLink,
-    title: "\u0421\u043A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u043F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F \u0437 \u0434\u0430\u043D\u0438\u043C\u0438, \u0449\u043E\u0431 \u043F\u043E\u0434\u0456\u043B\u0438\u0442\u0438\u0441\u044C \u0437 \u043A\u043E\u043C\u0430\u043D\u0434\u043E\u044E",
+    title: "\u0421\u043A\u043E\u043F\u0456\u044E\u0432\u0430\u0442\u0438 \u0437\u0432\u0438\u0447\u0430\u0439\u043D\u0435 \u043F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F \u043D\u0430 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0443 \u2014 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043F\u043E\u0431\u0430\u0447\u0438\u0442\u044C \u0434\u0430\u043D\u0456 \u0437 data.json \u0443 \u0440\u0435\u043F\u043E\u0437\u0438\u0442\u043E\u0440\u0456\u0457",
     style: {
       fontSize: 11,
       padding: "6px 14px",
@@ -2930,7 +3004,7 @@ function App() {
       color: copied ? "#fff" : C.text,
       fontWeight: 600
     }
-  }, copied ? "✓ Скопійовано" : "🔗 Посилання для команди"), /*#__PURE__*/React.createElement("button", {
+  }, copied ? "✓ Скопійовано" : "🔗 Посилання"), /*#__PURE__*/React.createElement("button", {
     onClick: resetLocal,
     title: "\u0421\u043A\u0438\u043D\u0443\u0442\u0438 \u0437\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u0435 \u0439 \u043F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u0438\u0441\u044C \u0434\u043E \u0431\u0430\u0437\u043E\u0432\u0438\u0445 \u0434\u0430\u043D\u0438\u0445",
     style: {
