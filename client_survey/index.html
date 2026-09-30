@@ -922,8 +922,8 @@ footer{padding-block:30px;font-family:var(--util);font-size:11px;letter-spacing:
     ]],
     ["Вага в рішенні", [
       ["08 Роль у рішенні", "q7"], ["09 Вирішальне слово в", "q8"],
-      ["10 Скасовував хтось інший", "q9"], ["— хто саме", "q9who"],
-      ["11 Внутрішній техзамовник", "q10"], ["— хто саме", "q10who"]
+      ["10 Скасовував хтось інший", "q9"], ["— хто саме", "q9who", "opt"],
+      ["11 Внутрішній техзамовник", "q10"], ["— хто саме", "q10who", "opt"]
     ]],
     ["Комунікація", [
       ["12 Канал", "c1"], ["13 Час відповіді нам", "c2"], ["14 Зникав на 2+ тижні", "c3"],
@@ -943,9 +943,9 @@ footer{padding-block:30px;font-family:var(--util);font-size:11px;letter-spacing:
       ["27 Що фіксує рішення", "x1"], ["28 Повертався до погодженого", "x2"], ["29 Після чого", "x3"]
     ]],
     ["СТОП-лист", [
-      ["30 Не робити", "s1a"], ["— бо було", "s1b"],
-      ["31 Не робити", "s2a"], ["— бо було", "s2b"],
-      ["32 Не робити", "s3a"], ["— бо було", "s3b"],
+      ["30 Не робити", "s1a", "opt"], ["— бо було", "s1b", "s1a"],
+      ["31 Не робити", "s2a", "opt"], ["— бо було", "s2b", "s2a"],
+      ["32 Не робити", "s3a", "opt"], ["— бо було", "s3b", "s3a"],
       ["33 Додаткові заборони", "s5"], ["34 Що спрацювало", "s4"]
     ]],
     ["Терміни", [
@@ -1002,12 +1002,18 @@ footer{padding-block:30px;font-family:var(--util);font-size:11px;letter-spacing:
     var html = "";
     MAP.forEach(function(block){
       if(block[2] === "pm" && !payShown()) return;
-      html += "<div class=\"sum-block\">" + block[0] + "</div>";
+      var rows = "";
       block[1].forEach(function(row){
         var v = valueOf(row[1]);
-        html += "<div class=\"sum-row\"><div class=\"k\">" + row[0] + "</div>" +
+        var dep = row[2];
+        // a dependent row is dropped when it did not apply, or when its parent is blank
+        if(dep === "opt" && !v) return;
+        if(dep && dep !== "opt" && !valueOf(dep)) return;
+        rows += "<div class=\"sum-row\"><div class=\"k\">" + row[0] + "</div>" +
           "<div class=\"v" + (v ? "" : " empty") + "\">" + (v ? esc(v) : "не заповнено") + "</div></div>";
       });
+      if(!rows) return;
+      html += "<div class=\"sum-block\">" + block[0] + "</div>" + rows;
     });
     document.getElementById("summary").innerHTML = html;
   }
