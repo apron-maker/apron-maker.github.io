@@ -1,0 +1,1078 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Опитник про замовника</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single narrow column, one block of questions per step, sticky progress rail on top */
+:root{
+  --ground:#E9ECEC;
+  --surface:#FFFFFF;
+  --surface-2:#F2F5F5;
+  --ink:#16191B;
+  --ink-mid:#4C5356;
+  --ink-soft:#828C90;
+  --rule:#D5DADA;
+  --rule-strong:#B7C0C0;
+  --accent:#1D4E5C;
+  --accent-wash:#DDE9EA;
+  --on-accent:#FFFFFF;
+  --signal:#97441F;
+  --signal-wash:#F1E1D8;
+  --display:"Literata",Georgia,"Times New Roman",serif;
+  --body:"Commissioner","Segoe UI",system-ui,-apple-system,sans-serif;
+  --util:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#121514;
+    --surface:#1A1E1E;
+    --surface-2:#212626;
+    --ink:#E8ECEA;
+    --ink-mid:#AEB6B4;
+    --ink-soft:#7C8785;
+    --rule:#2C3231;
+    --rule-strong:#3E4544;
+    --accent:#6FB2BD;
+    --accent-wash:#17302F;
+    --on-accent:#10201F;
+    --signal:#D18C64;
+    --signal-wash:#2E231C;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#121514;
+  --surface:#1A1E1E;
+  --surface-2:#212626;
+  --ink:#E8ECEA;
+  --ink-mid:#AEB6B4;
+  --ink-soft:#7C8785;
+  --rule:#2C3231;
+  --rule-strong:#3E4544;
+  --accent:#6FB2BD;
+  --accent-wash:#17302F;
+  --on-accent:#10201F;
+  --signal:#D18C64;
+  --signal-wash:#2E231C;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+.shell{max-width:720px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.eyebrow{font-family:var(--util);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:0}
+
+/* progress rail */
+.rail{
+  position:sticky;top:env(safe-area-inset-top, 0px);z-index:5;
+  background:var(--ground);padding-block:14px 12px;border-bottom:1px solid var(--rule);
+  margin-bottom:26px
+}
+.rail-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.rail-name{font-family:var(--util);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.rail-step{font-family:var(--util);font-size:11px;letter-spacing:.1em;color:var(--accent)}
+.bar{height:3px;background:var(--rule);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .28s ease}
+
+/* intro */
+.intro h1{
+  font-family:var(--display);font-weight:600;font-size:clamp(30px,6vw,44px);
+  line-height:1.08;letter-spacing:-.015em;margin:14px 0 16px;text-wrap:balance
+}
+.intro .lede{font-size:17px;color:var(--ink-mid);margin:0 0 22px;max-width:56ch}
+.rules{display:grid;gap:8px;margin-bottom:26px}
+.rule-item{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px 16px
+}
+.rule-item .n{font-family:var(--util);font-size:11px;color:var(--accent);padding-top:3px}
+.rule-item .t{font-size:15px;color:var(--ink-mid)}
+.rule-item .t b{color:var(--ink);font-weight:600}
+
+/* steps */
+.step[hidden]{display:none}
+.step-head{margin-bottom:22px}
+.step-head h2{
+  font-family:var(--display);font-weight:600;font-size:clamp(21px,4vw,27px);
+  letter-spacing:-.01em;margin:8px 0 6px;text-wrap:balance
+}
+.step-head p{margin:0;color:var(--ink-soft);font-size:14.5px;max-width:58ch}
+
+fieldset{border:0;margin:0 0 26px;padding:0;min-width:0}
+legend{padding:0;display:block;margin-bottom:10px}
+.qhead{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:baseline}
+.qn{font-family:var(--util);font-size:11.5px;color:var(--ink-soft)}
+.qt{font-size:16.5px;font-weight:500;color:var(--ink)}
+.qhint{font-size:13.5px;color:var(--ink-soft);margin:5px 0 0 30px}
+.opts{display:grid;gap:6px;margin-top:12px;margin-left:30px}
+@media(max-width:520px){.opts,.qhint{margin-left:0}}
+.opt{
+  display:flex;gap:11px;align-items:flex-start;cursor:pointer;
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:11px 14px;font-size:15px;color:var(--ink-mid);min-width:0
+}
+.opt:hover{border-color:var(--rule-strong)}
+.opt input{accent-color:var(--accent);margin:3px 0 0;flex:0 0 auto}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-wash);color:var(--ink)}
+.opt span{min-width:0}
+
+input[type="text"],textarea,select{
+  width:100%;font:inherit;font-size:15px;color:var(--ink);
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:11px 13px;margin-top:12px
+}
+.opts input[type="text"],.opts textarea{margin-top:0}
+textarea{resize:vertical;min-height:76px;line-height:1.5}
+input::placeholder,textarea::placeholder{color:var(--ink-soft)}
+.field{margin-left:30px}
+@media(max-width:520px){.field{margin-left:0}}
+.pair{display:grid;gap:8px;margin-top:12px;margin-left:30px}
+@media(max-width:520px){.pair{margin-left:0}}
+.pair input,.pair textarea{margin-top:0}
+.stopwrap{
+  background:var(--signal-wash);border-radius:4px;padding:14px 16px;margin-top:12px;margin-left:30px;
+  display:grid;gap:8px
+}
+@media(max-width:520px){.stopwrap{margin-left:0}}
+.stopwrap .lab{font-family:var(--util);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--signal)}
+.stopwrap input,.stopwrap textarea{background:var(--surface);margin-top:0}
+
+/* ranking */
+.rank{display:grid;gap:6px;margin-top:12px;margin-left:30px}
+@media(max-width:520px){.rank{margin-left:0}}
+.rbtn{
+  display:flex;gap:11px;align-items:center;text-align:left;font:inherit;font-size:15px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:4px;
+  padding:11px 14px;cursor:pointer;color:var(--ink-mid);min-width:0
+}
+.rbtn:hover{border-color:var(--rule-strong)}
+.rbtn .badge{
+  flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:1px solid var(--rule-strong);
+  display:grid;place-items:center;font-family:var(--util);font-size:11px;color:var(--ink-soft)
+}
+.rbtn[data-picked] {border-color:var(--accent);background:var(--accent-wash);color:var(--ink)}
+.rbtn[data-picked] .badge{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.rank-note{font-size:13px;color:var(--ink-soft);margin:8px 0 0 30px}
+@media(max-width:520px){.rank-note{margin-left:0}}
+
+/* nav */
+.nav{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  border-top:1px solid var(--rule);padding-top:20px;margin-top:8px
+}
+button.btn{
+  font:inherit;font-size:15px;font-weight:500;border-radius:4px;padding:11px 20px;cursor:pointer;
+  border:1px solid var(--accent);background:var(--accent);color:var(--on-accent)
+}
+button.btn.ghost{background:none;color:var(--ink-mid);border-color:var(--rule-strong)}
+button.btn.ghost:hover{color:var(--ink);border-color:var(--ink-soft)}
+button.btn:disabled{opacity:.4;cursor:default}
+.nav .spacer{flex:1}
+.linkbtn{
+  background:none;border:0;font:inherit;font-size:13.5px;color:var(--ink-soft);
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:0
+}
+.linkbtn:hover{color:var(--accent)}
+
+/* summary */
+.sum-card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.sum-block{
+  font-family:var(--util);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);background:var(--surface-2);padding:10px 18px;border-block:1px solid var(--rule)
+}
+.sum-block:first-child{border-top:0}
+.sum-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:6px 20px;padding:12px 18px;border-bottom:1px solid var(--rule)}
+.sum-row:last-child{border-bottom:0}
+.sum-row .k{font-size:13.5px;color:var(--ink-soft)}
+.sum-row .v{font-size:15px;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.sum-row .v.empty{color:var(--ink-soft);font-style:italic}
+@media(max-width:600px){.sum-row{grid-template-columns:1fr;gap:3px}}
+.sum-note{
+  margin-top:18px;background:var(--accent-wash);border-left:3px solid var(--accent);
+  padding:14px 16px;border-radius:0 4px 4px 0;font-size:14.5px;color:var(--ink-mid)
+}
+.sum-note b{color:var(--ink)}
+footer{padding-block:30px;font-family:var(--util);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);text-align:center}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="shell">
+
+<div class="rail" id="rail" hidden>
+  <div class="rail-top">
+    <span class="rail-name">Портрет замовника</span>
+    <span class="rail-step" id="railStep">Крок 1 з 9</span>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+</div>
+
+<form id="f" novalidate>
+
+<!-- INTRO -->
+<section class="step intro" data-step="0">
+  <p class="eyebrow">AVR · Прототип форми</p>
+  <h1>Опитник про замовника</h1>
+  <p class="lede">Заповнюють ГАПи, ГІПи, ПМи та LEAD проєктів після роботи з представником замовника. Відповіді зводяться в картку, яку отримує наступний LEAD перед першою зустріччю.</p>
+  <div class="rules">
+    <div class="rule-item"><span class="n">01</span><span class="t"><b>Одна відповідь — один представник.</b> Якщо ви працювали з трьома людьми від однієї компанії, заповніть форму тричі.</span></div>
+    <div class="rule-item"><span class="n">02</span><span class="t"><b>Пишемо тільки те, що бачили.</b> Не потрібно оцінювати характер чи мотивацію — потрібні факти поведінки.</span></div>
+    <div class="rule-item"><span class="n">03</span><span class="t"><b>Чутливе — не у форму.</b> Наприкінці є питання «чи є що передати усно». Поставте позначку, і з вами звʼяжуться.</span></div>
+    <div class="rule-item"><span class="n">04</span><span class="t"><b>8–10 хвилин.</b> Порожні поля допускаються: краще часткова відповідь, ніж жодної.</span></div>
+  </div>
+  <div class="nav">
+    <button type="button" class="btn" data-go="1">Почати</button>
+    <div class="spacer"></div>
+    <button type="button" class="linkbtn" id="fillDemo">Заповнити прикладом</button>
+  </div>
+</section>
+
+<!-- 1 -->
+<section class="step" data-step="1" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 1 · Службове</p>
+    <h2>Хто і про кого</h2>
+    <p>Ці поля потрібні, щоб звести кілька відповідей про одну людину в одну картку.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">01</span><span class="qt">Ваше ПІБ</span></div></legend>
+    <p class="qhint">Потрібне, щоб знати автора спостереження і мати з ким звʼязатися за уточненням.</p>
+    <div class="field"><input type="text" name="resp" placeholder="Прізвище та імʼя"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">02</span><span class="qt">Ваша роль на цьому проєкті</span></div></legend>
+    <p class="qhint">Від відповіді залежить, чи буде далі блок про оплати — його заповнює тільки ПМ.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="q1" value="ГАП / керівник групи"><span>ГАП / керівник групи</span></label>
+      <label class="opt"><input type="radio" name="q1" value="ГІП"><span>ГІП</span></label>
+      <label class="opt"><input type="radio" name="q1" value="ПМ"><span>ПМ</span></label>
+      <label class="opt"><input type="radio" name="q1" value="LEAD"><span>LEAD</span></label>
+      <label class="opt"><input type="radio" name="q1" value="Керівник напрямку"><span>Керівник напрямку</span></label>
+      <label class="opt"><input type="radio" name="q1" value="Інше" data-reveal="q1_box"><span>Інше</span></label>
+      <div id="q1_box" hidden><input type="text" name="q1_other" placeholder="Ваша роль"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">03</span><span class="qt">Компанія-замовник</span></div></legend>
+    <div class="field">
+      <select name="q2" data-reveal="q2_box" data-reveal-value="Інша">
+        <option value="">— оберіть зі списку —</option>
+        <option>Мій дім</option><option>Інтергалбуд</option><option>Нова оселя</option>
+        <option>Viking Development</option><option>Resident</option><option>Delta</option>
+        <option>Континіум</option><option>ONUR</option><option>Місто комфорту</option>
+        <option>Інша</option>
+      </select>
+      <div id="q2_box" hidden><input type="text" name="q2_other" placeholder="Назва компанії"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">04</span><span class="qt">Представник: ПІБ і посада</span></div></legend>
+    <div class="field"><input type="text" name="q3" placeholder="Напр.: Вячеслав Чепіль, інвестор"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">05</span><span class="qt">На яких стадіях ви з ним працювали</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="q4" value="КП"><span>КП</span></label>
+      <label class="opt"><input type="checkbox" name="q4" value="ЕП"><span>ЕП</span></label>
+      <label class="opt"><input type="checkbox" name="q4" value="П"><span>П</span></label>
+      <label class="opt"><input type="checkbox" name="q4" value="РД"><span>РД</span></label>
+      <label class="opt"><input type="checkbox" name="q4" value="Авторський нагляд"><span>Авторський нагляд</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">06</span><span class="qt">Назви проєктів</span></div></legend>
+    <div class="field"><input type="text" name="q5" placeholder="Через кому"></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">07</span><span class="qt">Коли востаннє був робочий контакт</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="q6" value="Зараз працюємо"><span>Зараз працюємо</span></label>
+      <label class="opt"><input type="radio" name="q6" value="До 3 місяців тому"><span>До 3 місяців тому</span></label>
+      <label class="opt"><input type="radio" name="q6" value="3–12 місяців тому"><span>3–12 місяців тому</span></label>
+      <label class="opt"><input type="radio" name="q6" value="Понад рік тому"><span>Понад рік тому</span></label>
+    </div>
+  </fieldset>
+</section>
+
+<!-- 2 -->
+<section class="step" data-step="2" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 2 · Вага в рішенні</p>
+    <h2>Хто насправді вирішує</h2>
+    <p>Найдорожча втрата часу — узгодити з тим, хто не приймає рішення.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">08</span><span class="qt">Що він фактично робить з нашими рішеннями</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="q7" value="Приймає остаточно"><span>Приймає остаточно</span></label>
+      <label class="opt"><input type="radio" name="q7" value="Впливає, але вирішує не він"><span>Впливає, але вирішує не він</span></label>
+      <label class="opt"><input type="radio" name="q7" value="Готує рішення для того, хто вирішує"><span>Готує рішення для того, хто вирішує</span></label>
+      <label class="opt"><input type="radio" name="q7" value="Транслює чуже рішення"><span>Транслює чуже рішення</span></label>
+      <label class="opt"><input type="radio" name="q7" value="Так і не стало зрозуміло"><span>За час роботи так і не стало зрозуміло</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">09</span><span class="qt">У яких питаннях його слово вирішальне</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="q8" value="Архітектурна концепція"><span>Архітектурна концепція</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Посадка і ТЕПи"><span>Посадка і ТЕПи</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Бюджет будівництва"><span>Бюджет будівництва</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Вартість проєктування і склад набутків"><span>Вартість проєктування і склад набутків</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Технічні рішення"><span>Технічні рішення</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Терміни"><span>Терміни</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Вибір підрядників"><span>Вибір підрядників</span></label>
+      <label class="opt"><input type="checkbox" name="q8" value="Інше" data-reveal="q8_box"><span>Інше</span></label>
+      <div id="q8_box" hidden><input type="text" name="q8_other" placeholder="Яке саме питання"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">10</span><span class="qt">Чи траплялося, що погоджене з ним скасовував хтось інший</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="q9" value="Так" data-reveal="r9"><span>Так</span></label>
+      <label class="opt"><input type="radio" name="q9" value="Ні"><span>Ні</span></label>
+      <label class="opt"><input type="radio" name="q9" value="Не памʼятаю"><span>Не памʼятаю</span></label>
+      <div id="r9" hidden><input type="text" name="q9who" placeholder="Хто саме скасовував"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">11</span><span class="qt">Чи є в компанії внутрішній технічний замовник</span></div></legend>
+    <p class="qhint">Людина, яка фахово перевіряє наші рішення по суті.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="q10" value="Так" data-reveal="r10"><span>Так</span></label>
+      <label class="opt"><input type="radio" name="q10" value="Ні, перевірки по суті немає"><span>Ні, перевірки по суті немає</span></label>
+      <label class="opt"><input type="radio" name="q10" value="Не знаю"><span>Не знаю</span></label>
+      <div id="r10" hidden><input type="text" name="q10who" placeholder="Хто саме"></div>
+    </div>
+  </fieldset>
+</section>
+
+<!-- 3 -->
+<section class="step" data-step="3" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 3 · Комунікація</p>
+    <h2>Ритм роботи з ним</h2>
+    <p>Звідси береться і коефіцієнт відгуку для графіка, і оцінка навантаження на ПМа.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">12</span><span class="qt">Основний канал</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="c1" value="Телефон"><span>Телефон</span></label>
+      <label class="opt"><input type="radio" name="c1" value="Месенджер"><span>Месенджер</span></label>
+      <label class="opt"><input type="radio" name="c1" value="Пошта"><span>Пошта</span></label>
+      <label class="opt"><input type="radio" name="c1" value="Особисті зустрічі"><span>Особисті зустрічі</span></label>
+      <label class="opt"><input type="radio" name="c1" value="Тільки через свого ПМа"><span>Тільки через свого ПМа</span></label>
+      <label class="opt"><input type="radio" name="c1" value="Інше" data-reveal="c1_box"><span>Інше</span></label>
+      <div id="c1_box" hidden><input type="text" name="c1_other" placeholder="Який саме канал"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">13</span><span class="qt">Реальний час відповіді на наше питання</span></div></legend>
+    <p class="qhint">Скільки чекаємо, коли рішення потрібне від нього.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="c2" value="Години"><span>Години</span></label>
+      <label class="opt"><input type="radio" name="c2" value="1–2 дні"><span>1–2 дні</span></label>
+      <label class="opt"><input type="radio" name="c2" value="До тижня"><span>До тижня</span></label>
+      <label class="opt"><input type="radio" name="c2" value="Довше тижня"><span>Довше тижня</span></label>
+      <label class="opt"><input type="radio" name="c2" value="Непередбачувано"><span>Непередбачувано</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">14</span><span class="qt">Чи зникав на два тижні й більше під час активної стадії</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="c3" value="Так"><span>Так</span></label>
+      <label class="opt"><input type="radio" name="c3" value="Ні"><span>Ні</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">15</span><span class="qt">Як часто він сам виходить на контакт</span></div></legend>
+    <p class="qhint">Скільки уваги він забирає незалежно від наших потреб.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="c4" value="Кілька разів на день, дзвонить підряд"><span>Кілька разів на день, дзвонить підряд</span></label>
+      <label class="opt"><input type="radio" name="c4" value="Щодня"><span>Щодня</span></label>
+      <label class="opt"><input type="radio" name="c4" value="Кілька разів на тиждень"><span>Кілька разів на тиждень</span></label>
+      <label class="opt"><input type="radio" name="c4" value="Раз на тиждень"><span>Раз на тиждень</span></label>
+      <label class="opt"><input type="radio" name="c4" value="Раз на місяць і рідше"><span>Раз на місяць і рідше</span></label>
+      <label class="opt"><input type="radio" name="c4" value="Хвилями: то тиша, то постійний контакт"><span>Хвилями: то тиша, то постійний контакт</span></label>
+      <label class="opt"><input type="radio" name="c4" value="Тільки коли йому терміново щось потрібно"><span>Тільки коли йому терміново щось потрібно</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">16</span><span class="qt">Чи пише або дзвонить поза робочим часом</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="c5" value="Так, включно з вечорами й вихідними"><span>Так, включно з вечорами й вихідними</span></label>
+      <label class="opt"><input type="radio" name="c5" value="Зрідка, у гострі моменти"><span>Зрідка, у гострі моменти</span></label>
+      <label class="opt"><input type="radio" name="c5" value="Ні, тільки в робочі години"><span>Ні, тільки в робочі години</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">17</span><span class="qt">Яка періодичність зустрічей потрібна для нормального ходу роботи</span></div></legend>
+    <p class="qhint">Не як склалося, а який ритм реально тримає проєкт у русі.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="c6" value="Щотижня"><span>Щотижня</span></label>
+      <label class="opt"><input type="radio" name="c6" value="Раз на два тижні"><span>Раз на два тижні</span></label>
+      <label class="opt"><input type="radio" name="c6" value="Раз на місяць"><span>Раз на місяць</span></label>
+      <label class="opt"><input type="radio" name="c6" value="Раз на два місяці й рідше"><span>Раз на два місяці й рідше</span></label>
+      <label class="opt"><input type="radio" name="c6" value="Регулярні зустрічі не потрібні, вистачає листування"><span>Регулярні зустрічі не потрібні, вистачає листування</span></label>
+    </div>
+  </fieldset>
+</section>
+
+<!-- 4 -->
+<section class="step" data-step="4" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 4 · Критерії</p>
+    <h2>За чим він оцінює нашу роботу</h2>
+    <p>Через спостережувану поведінку, а не через здогади про мотивацію.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">18</span><span class="qt">За чим він оцінює наше рішення</span></div></legend>
+    <p class="qhint">Натискайте в порядку важливості. Максимум три.</p>
+    <div class="rank" id="rank17">
+      <button type="button" class="rbtn" data-v="ТЕПи"><span class="badge"></span><span>ТЕПи</span></button>
+      <button type="button" class="rbtn" data-v="Вартість будівництва"><span class="badge"></span><span>Вартість будівництва</span></button>
+      <button type="button" class="rbtn" data-v="Вартість проєктування"><span class="badge"></span><span>Вартість проєктування</span></button>
+      <button type="button" class="rbtn" data-v="Архітектурна ідея й естетика"><span class="badge"></span><span>Архітектурна ідея й естетика</span></button>
+      <button type="button" class="rbtn" data-v="Терміни"><span class="badge"></span><span>Терміни</span></button>
+      <button type="button" class="rbtn" data-v="Продаваність"><span class="badge"></span><span>Продаваність</span></button>
+      <button type="button" class="rbtn" data-v="Проходження дозволів і норми"><span class="badge"></span><span>Проходження дозволів і норми</span></button>
+      <button type="button" class="rbtn" data-v="Репутація перед містом"><span class="badge"></span><span>Репутація перед містом</span></button>
+      <button type="button" class="rbtn" data-v="Зручність реалізації на будові"><span class="badge"></span><span>Зручність реалізації на будові</span></button>
+      <button type="button" class="rbtn" data-v="Інше"><span class="badge"></span><span>Інше</span></button>
+    </div>
+    <div class="field" id="rank_box" hidden><input type="text" name="rank_other" placeholder="Чим саме керується — своїми словами"></div>
+    <p class="rank-note" id="rankNote">Обрано: нічого</p>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">19</span><span class="qt">Який формат подачі заходить найкраще</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="f1" value="3D-візуалізація"><span>3D-візуалізація</span></label>
+      <label class="opt"><input type="radio" name="f1" value="Плани і схеми"><span>Плани і схеми</span></label>
+      <label class="opt"><input type="radio" name="f1" value="Цифри й таблиці"><span>Цифри й таблиці</span></label>
+      <label class="opt"><input type="radio" name="f1" value="Коротко усно"><span>Коротко усно</span></label>
+      <label class="opt"><input type="radio" name="f1" value="Фізичний макет"><span>Фізичний макет</span></label>
+      <label class="opt"><input type="radio" name="f1" value="Інше" data-reveal="f1_box"><span>Інше</span></label>
+      <div id="f1_box" hidden><input type="text" name="f1_other" placeholder="Який саме формат"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">20</span><span class="qt">Як реагує на додаткову комерційну за зміни чи доопрацювання</span></div></legend>
+    <p class="qhint">Йдеться про коригування вартості проєктування, коли замовник змінює завдання або просить роботи поза узгодженим обсягом. Не про вартість будівництва.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="k1" value="Погоджує і оплачує без зайвих обговорень"><span>Погоджує і оплачує без зайвих обговорень</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Погоджує, але вимагає детального обґрунтування обсягу"><span>Погоджує, але вимагає детального обґрунтування обсягу</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Торгується, зрештою погоджує меншу суму"><span>Торгується, зрештою погоджує меншу суму</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Тисне зробити в межах діючого договору"><span>Тисне зробити в межах діючого договору</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Погоджує усно, але оплата затягується"><span>Погоджує усно, але оплата затягується</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Відмовляється і згортає обсяг змін"><span>Відмовляється і згортає обсяг змін</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Такої ситуації не було"><span>Такої ситуації не було</span></label>
+      <label class="opt"><input type="radio" name="k1" value="Інше" data-reveal="k1_box"><span>Інше</span></label>
+      <div id="k1_box" hidden><input type="text" name="k1_other" placeholder="Як саме реагує"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">21</span><span class="qt">Що доводилося робити без додаткової комерційної</span></div></legend>
+    <p class="qhint">Роботи поза обсягом, які зрештою списали у витрати виробництва. Якщо таких не було — залиште порожнім.</p>
+    <div class="field"><textarea name="k2" placeholder="Напр.: три повні переробки посадки на ЕП після зміни вхідних даних"></textarea></div>
+  </fieldset>
+</section>
+
+<!-- 5: payments, PM only -->
+<section class="step" data-step="5" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 5 · Оплати · тільки для ПМ</p>
+    <h2>Платіжна поведінка</h2>
+    <p>Цей блок бачить тільки ПМ. Відповідайте по фактах виставлених рахунків, без оцінок надійності.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">22</span><span class="qt">Чи дотримується графіка оплат за наші етапи</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="p1" value="Платить за графіком"><span>Платить за графіком</span></label>
+      <label class="opt"><input type="radio" name="p1" value="Невелика затримка, без нагадувань"><span>Невелика затримка, але без нагадувань</span></label>
+      <label class="opt"><input type="radio" name="p1" value="Платить тільки після нагадувань"><span>Платить тільки після нагадувань</span></label>
+      <label class="opt"><input type="radio" name="p1" value="Затягує системно"><span>Затягує системно</span></label>
+      <label class="opt"><input type="radio" name="p1" value="Платить частинами, не повними сумами"><span>Платить частинами, не повними сумами</span></label>
+      <label class="opt"><input type="radio" name="p1" value="Оплат за цим замовником ще не було"><span>Оплат за цим замовником ще не було</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">23</span><span class="qt">Типова затримка після виставлення рахунку</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="p2" value="У термін за договором"><span>У термін за договором</span></label>
+      <label class="opt"><input type="radio" name="p2" value="До двох тижнів"><span>До двох тижнів</span></label>
+      <label class="opt"><input type="radio" name="p2" value="До місяця"><span>До місяця</span></label>
+      <label class="opt"><input type="radio" name="p2" value="Понад місяць"><span>Понад місяць</span></label>
+      <label class="opt"><input type="radio" name="p2" value="Непередбачувано"><span>Непередбачувано</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">24</span><span class="qt">Що зазвичай стає причиною затримки</span></div></legend>
+    <p class="qhint">Кілька варіантів. Це поле відрізняє внутрішню бюрократію замовника від свідомого важеля в переговорах.</p>
+    <div class="opts">
+      <label class="opt"><input type="checkbox" name="p3" value="Внутрішня процедура погодження на їхньому боці"><span>Внутрішня процедура погодження на їхньому боці</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Чекають надходжень або продажів"><span>Чекають надходжень або продажів</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Привʼязують оплату до претензій щодо якості чи термінів"><span>Привʼязують оплату до претензій щодо якості чи термінів</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Не підписані або загублені документи"><span>Не підписані або загублені документи</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Використовують затримку як важіль у переговорах"><span>Використовують затримку як важіль у переговорах</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Причина невідома"><span>Причина невідома</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Затримок не було"><span>Затримок не було</span></label>
+      <label class="opt"><input type="checkbox" name="p3" value="Інше" data-reveal="p3_box"><span>Інше</span></label>
+      <div id="p3_box" hidden><input type="text" name="p3_other" placeholder="Яка саме причина"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">25</span><span class="qt">Чи доводилося гальмувати роботи через неоплату</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="p4" value="Так, зупиняли роботи"><span>Так, зупиняли роботи</span></label>
+      <label class="opt"><input type="radio" name="p4" value="Піднімали питання, але роботи не зупиняли"><span>Піднімали питання, але роботи не зупиняли</span></label>
+      <label class="opt"><input type="radio" name="p4" value="Ні"><span>Ні</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">26</span><span class="qt">Що на практиці прискорює оплату</span></div></legend>
+    <p class="qhint">Конкретний прийом, який спрацював: через кого йшли, який документ допоміг, коли варто нагадувати.</p>
+    <div class="field"><textarea name="p5" placeholder="Напр.: рахунок рухається тільки після підписаного акта — надсилати акт одразу з передачею матеріалів"></textarea></div>
+  </fieldset>
+</section>
+
+<!-- 6 -->
+<section class="step" data-step="6" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 6 · Фіксація</p>
+    <h2>Що тримає домовленість</h2>
+    <p>Повернення до вже закритого питання — головна втрата якості між стадіями.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">27</span><span class="qt">Що робить рішення остаточним</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="x1" value="Протокол із підписом"><span>Протокол із підписом</span></label>
+      <label class="opt"><input type="radio" name="x1" value="Лист-підтвердження"><span>Лист-підтвердження</span></label>
+      <label class="opt"><input type="radio" name="x1" value="Усне «ок» тримається"><span>Усне «ок» тримається</span></label>
+      <label class="opt"><input type="radio" name="x1" value="Надійно не тримається нічого"><span>Надійно не тримається нічого</span></label>
+      <label class="opt"><input type="radio" name="x1" value="Інше" data-reveal="x1_box"><span>Інше</span></label>
+      <div id="x1_box" hidden><input type="text" name="x1_other" placeholder="Що саме фіксує рішення"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">28</span><span class="qt">Скільки разів повертався до вже погодженого</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="x2" value="Жодного"><span>Жодного</span></label>
+      <label class="opt"><input type="radio" name="x2" value="Один-два"><span>Один-два</span></label>
+      <label class="opt"><input type="radio" name="x2" value="Регулярно"><span>Регулярно</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">29</span><span class="qt">Після чого саме повертався</span></div></legend>
+    <p class="qhint">Один конкретний випадок, без оцінок.</p>
+    <div class="field"><textarea name="x3" placeholder="Напр.: після отримання дозвільних обмежень попросив переглянути посадку, яку узгодили місяцем раніше"></textarea></div>
+  </fieldset>
+</section>
+
+<!-- 7 -->
+<section class="step" data-step="7" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 7 · Заборони і прийоми</p>
+    <h2>Чого з ним робити не можна</h2>
+    <p>Головний блок опитника. Приклад обовʼязковий: без нього наступний LEAD читає заборону як чиюсь примху.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">30</span><span class="qt">Заборона перша</span></div></legend>
+    <div class="stopwrap">
+      <span class="lab">Не робити</span>
+      <input type="text" name="s1a" placeholder="Напр.: не казати «це неможливо зробити»">
+      <span class="lab">Бо був випадок</span>
+      <textarea name="s1b" placeholder="Що саме сталося"></textarea>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">31</span><span class="qt">Заборона друга</span></div></legend>
+    <div class="stopwrap">
+      <span class="lab">Не робити</span>
+      <input type="text" name="s2a" placeholder="">
+      <span class="lab">Бо був випадок</span>
+      <textarea name="s2b" placeholder=""></textarea>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">32</span><span class="qt">Заборона третя</span></div></legend>
+    <div class="stopwrap">
+      <span class="lab">Не робити</span>
+      <input type="text" name="s3a" placeholder="">
+      <span class="lab">Бо був випадок</span>
+      <textarea name="s3b" placeholder=""></textarea>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">33</span><span class="qt">Додатково: інші заборони</span></div></legend>
+    <p class="qhint">Якщо трьох замало — допишіть решту тут, по одній з нового рядка, разом із випадком. Можна залишити порожнім.</p>
+    <div class="field"><textarea name="s5" placeholder="Не робити X — бо було Y"></textarea></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">34</span><span class="qt">Що навпаки спрацювало</span></div></legend>
+    <p class="qhint">До трьох прийомів, які ви перевірили на практиці.</p>
+    <div class="field"><textarea name="s4" placeholder="Кожен прийом з нового рядка"></textarea></div>
+  </fieldset>
+</section>
+
+<!-- 8 -->
+<section class="step" data-step="8" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 8 · Терміни</p>
+    <h2>Графік і реакція на зсуви</h2>
+    <p>Звідси береться коефіцієнт до базових тривалостей і рівень ризику по термінах.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">35</span><span class="qt">Якість ТЗ на вході</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="n1" value="Детальне і придатне до роботи"><span>Детальне і придатне до роботи</span></label>
+      <label class="opt"><input type="radio" name="n1" value="Загальне, довелося уточнювати"><span>Загальне, довелося уточнювати</span></label>
+      <label class="opt"><input type="radio" name="n1" value="Фактично формували ми"><span>Фактично формували ми</span></label>
+      <label class="opt"><input type="radio" name="n1" value="ТЗ не було"><span>ТЗ не було</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">36</span><span class="qt">Скільки ітерацій погодження реально було на найдовшій стадії</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="n2" value="Одна"><span>Одна</span></label>
+      <label class="opt"><input type="radio" name="n2" value="Дві-три"><span>Дві-три</span></label>
+      <label class="opt"><input type="radio" name="n2" value="Чотири і більше"><span>Чотири і більше</span></label>
+      <label class="opt"><input type="radio" name="n2" value="Не рахували"><span>Не рахували</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">37</span><span class="qt">Як затримки з його боку вплинули на графік</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="n3" value="Не вплинули"><span>Не вплинули</span></label>
+      <label class="opt"><input type="radio" name="n3" value="До двох тижнів"><span>До двох тижнів</span></label>
+      <label class="opt"><input type="radio" name="n3" value="До місяця"><span>До місяця</span></label>
+      <label class="opt"><input type="radio" name="n3" value="Понад місяць"><span>Понад місяць</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">38</span><span class="qt">Як реагує, коли термін зсувається через затримку з його боку</span></div></legend>
+    <p class="qhint">Чи визнає причину — чи вимагає тримати початкову дату попри власну затримку.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="n4" value="Визнає причину і погоджує новий термін"><span>Визнає причину і погоджує новий термін</span></label>
+      <label class="opt"><input type="radio" name="n4" value="Погоджує формально, але тисне надолужити до початкової дати"><span>Погоджує формально, але тисне надолужити до початкової дати</span></label>
+      <label class="opt"><input type="radio" name="n4" value="Не визнає звʼязку, вимагає початкову дату"><span>Не визнає звʼязку, вимагає початкову дату</span></label>
+      <label class="opt"><input type="radio" name="n4" value="Такої ситуації не було"><span>Такої ситуації не було</span></label>
+      <label class="opt"><input type="radio" name="n4" value="Інше" data-reveal="n4_box"><span>Інше</span></label>
+      <div id="n4_box" hidden><input type="text" name="n4_other" placeholder="Як саме реагує"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">39</span><span class="qt">Як реагує на порушення термінів з нашого боку</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="n5" value="Спокійно, якщо попередили заздалегідь"><span>Спокійно, якщо попередили заздалегідь</span></label>
+      <label class="opt"><input type="radio" name="n5" value="Незадоволений, але погоджує новий термін"><span>Незадоволений, але погоджує новий термін</span></label>
+      <label class="opt"><input type="radio" name="n5" value="Ескалює до керівництва AVR"><span>Ескалює до керівництва AVR</span></label>
+      <label class="opt"><input type="radio" name="n5" value="Погрожує штрафами, але не застосовує"><span>Погрожує штрафами, але не застосовує</span></label>
+      <label class="opt"><input type="radio" name="n5" value="Застосовує штрафи або утримання з оплати"><span>Застосовує штрафи або утримання з оплати</span></label>
+      <label class="opt"><input type="radio" name="n5" value="Такої ситуації не було"><span>Такої ситуації не було</span></label>
+      <label class="opt"><input type="radio" name="n5" value="Інше" data-reveal="n5_box"><span>Інше</span></label>
+      <div id="n5_box" hidden><input type="text" name="n5_other" placeholder="Як саме реагує"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">40</span><span class="qt">Чи змінює його реакцію попередження заздалегідь</span></div></legend>
+    <p class="qhint">Найдешевший інструмент LEAD: якщо працює — попередження стає обовʼязковим пунктом роботи з ним.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="n6" value="Так, попередження знімає напругу"><span>Так, попередження знімає напругу</span></label>
+      <label class="opt"><input type="radio" name="n6" value="Трохи помʼякшує"><span>Трохи помʼякшує</span></label>
+      <label class="opt"><input type="radio" name="n6" value="Ні, реагує однаково"><span>Ні, реагує однаково</span></label>
+      <label class="opt"><input type="radio" name="n6" value="Не перевіряли — заздалегідь не попереджали"><span>Не перевіряли — заздалегідь не попереджали</span></label>
+    </div>
+  </fieldset>
+</section>
+
+<!-- 9 -->
+<section class="step" data-step="9" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Блок 9 · Підсумок</p>
+    <h2>Останні три питання</h2>
+    <p>Останнє знімає самоцензуру: чутливе не потрапляє у файл.</p>
+  </div>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">41</span><span class="qt">Одне речення новому LEAD перед першою зустріччю</span></div></legend>
+    <div class="field"><textarea name="z1" placeholder="Найважливіше, що варто знати заздалегідь"></textarea></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">42</span><span class="qt">Що важливого не вклалося у варіанти</span></div></legend>
+    <p class="qhint">Якщо у якомусь питанні жоден варіант не описав ситуацію — напишіть тут своїми словами. Можна залишити порожнім.</p>
+    <div class="field"><textarea name="z4" placeholder="Вкажіть номер питання і що саме не підійшло"></textarea></div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">43</span><span class="qt">Наскільки ви впевнені у своїх відповідях</span></div></legend>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="z2" value="1 — враження від кількох епізодів"><span>1 — враження від кількох епізодів</span></label>
+      <label class="opt"><input type="radio" name="z2" value="2 — працював із ним стабільно"><span>2 — працював із ним стабільно</span></label>
+      <label class="opt"><input type="radio" name="z2" value="3 — знаю добре"><span>3 — знаю добре</span></label>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend><div class="qhead"><span class="qn">44</span><span class="qt">Чи є те, що краще не писати у файл</span></div></legend>
+    <p class="qhint">Ми не просимо це описувати. Поставте позначку — і з вами звʼяжуться для усної передачі.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="z3" value="Так, звʼяжіться зі мною"><span>Так, звʼяжіться зі мною</span></label>
+      <label class="opt"><input type="radio" name="z3" value="Ні"><span>Ні</span></label>
+    </div>
+  </fieldset>
+</section>
+
+<!-- SUMMARY -->
+<section class="step" data-step="10" hidden>
+  <div class="step-head">
+    <p class="eyebrow">Готово</p>
+    <h2>Що пішло в таблицю</h2>
+    <p>Так виглядає один рядок відповідей. Картка представника збереться з усіх рядків по цій людині.</p>
+  </div>
+  <div class="sum-card" id="summary"></div>
+  <div class="sum-note">
+    <b>Наступний крок системи:</b> якщо по цій людині відповіли кілька людей, по закритих полях рахується консенсус, а розбіжність підсвічується окремо — наприклад, коли двоє вказали різну вагу в рішенні.
+  </div>
+</section>
+
+<div class="nav" id="nav" hidden>
+  <button type="button" class="btn ghost" id="back">Назад</button>
+  <button type="button" class="btn" id="next">Далі</button>
+  <div class="spacer"></div>
+  <button type="button" class="linkbtn" id="restart">Почати спочатку</button>
+</div>
+
+</form>
+
+<footer>Прототип форми · 30.09.2026</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var form = document.getElementById("f");
+  var steps = Array.prototype.slice.call(document.querySelectorAll(".step"));
+  var LAST = 10;
+  var PAY_STEP = 5;
+  var cur = 0;
+  var rail = document.getElementById("rail");
+  var railStep = document.getElementById("railStep");
+  var bar = document.getElementById("bar");
+  var nav = document.getElementById("nav");
+  var backBtn = document.getElementById("back");
+  var nextBtn = document.getElementById("next");
+
+  function roleValue(){
+    var v = "";
+    Array.prototype.forEach.call(document.getElementsByName("q1"), function(n){
+      if(n.checked) v = n.value;
+    });
+    return v;
+  }
+  // Payments are asked of ПМ only. Before a role is chosen the block stays visible.
+  function payShown(){
+    var r = roleValue();
+    return r === "" || r === "ПМ";
+  }
+  function stepsList(){
+    var list = [];
+    for(var i = 1; i < LAST; i++){
+      if(i === PAY_STEP && !payShown()) continue;
+      list.push(i);
+    }
+    return list;
+  }
+
+  function show(i){
+    cur = i;
+    steps.forEach(function(s){ s.hidden = parseInt(s.dataset.step, 10) !== i; });
+    rail.hidden = (i === 0);
+    nav.hidden = (i === 0);
+    if(i === LAST){
+      backBtn.disabled = false;
+      nextBtn.disabled = true;
+      nextBtn.textContent = "Готово";
+      railStep.textContent = "Завершено";
+      bar.style.width = "100%";
+    } else {
+      var list = stepsList();
+      var idx = list.indexOf(i);
+      backBtn.disabled = (idx <= 0);
+      nextBtn.disabled = false;
+      nextBtn.textContent = (idx === list.length - 1) ? "Показати підсумок" : "Далі";
+      railStep.textContent = "Крок " + (idx + 1) + " з " + list.length;
+      bar.style.width = Math.round(((idx + 1) / list.length) * 100) + "%";
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function move(dir){
+    var list = stepsList();
+    var idx = list.indexOf(cur);
+    if(idx === -1){ show(list[0]); return; }
+    var n = idx + dir;
+    if(n < 0) return;
+    if(n >= list.length){ buildSummary(); show(LAST); return; }
+    show(list[n]);
+  }
+
+  document.querySelectorAll("[data-go]").forEach(function(b){
+    b.addEventListener("click", function(){ show(parseInt(b.dataset.go, 10)); });
+  });
+  backBtn.addEventListener("click", function(){
+    if(cur === LAST){ var l = stepsList(); show(l[l.length - 1]); return; }
+    move(-1);
+  });
+  nextBtn.addEventListener("click", function(){ move(1); });
+  document.getElementById("restart").addEventListener("click", function(){
+    form.reset();
+    picks.length = 0;
+    paintRank();
+    syncReveals();
+    show(0);
+  });
+
+  // conditional text fields: every control carrying data-reveal owns one box
+  function syncReveals(){
+    document.querySelectorAll("[data-reveal]").forEach(function(ctl){
+      var box = document.getElementById(ctl.dataset.reveal);
+      if(!box) return;
+      if(ctl.tagName === "SELECT") box.hidden = (ctl.value !== ctl.dataset.revealValue);
+      else box.hidden = !ctl.checked;
+    });
+  }
+  form.addEventListener("change", syncReveals);
+
+  // ranking
+  var picks = [];
+  var rankBox = document.getElementById("rank17");
+  var rankNote = document.getElementById("rankNote");
+  function paintRank(){
+    rankBox.querySelectorAll(".rbtn").forEach(function(b){
+      var i = picks.indexOf(b.dataset.v);
+      if(i === -1){
+        b.removeAttribute("data-picked");
+        b.querySelector(".badge").textContent = "";
+      } else {
+        b.setAttribute("data-picked", "1");
+        b.querySelector(".badge").textContent = String(i + 1);
+      }
+    });
+    document.getElementById("rank_box").hidden = (picks.indexOf("Інше") === -1);
+    rankNote.textContent = picks.length
+      ? "Обрано: " + picks.map(function(p, i){ return (i + 1) + ". " + p; }).join(" · ")
+      : "Обрано: нічого";
+  }
+  rankBox.querySelectorAll(".rbtn").forEach(function(b){
+    b.addEventListener("click", function(){
+      var v = b.dataset.v;
+      var i = picks.indexOf(v);
+      if(i > -1) picks.splice(i, 1);
+      else if(picks.length < 3) picks.push(v);
+      paintRank();
+    });
+  });
+
+  // summary
+  var MAP = [
+    ["Службове", [
+      ["01 Хто заповнив", "resp"], ["02 Роль респондента", "q1"], ["03 Компанія", "q2"], ["04 Представник", "q3"],
+      ["05 Стадії", "q4"], ["06 Проєкти", "q5"], ["07 Останній контакт", "q6"]
+    ]],
+    ["Вага в рішенні", [
+      ["08 Роль у рішенні", "q7"], ["09 Вирішальне слово в", "q8"],
+      ["10 Скасовував хтось інший", "q9"], ["— хто саме", "q9who"],
+      ["11 Внутрішній техзамовник", "q10"], ["— хто саме", "q10who"]
+    ]],
+    ["Комунікація", [
+      ["12 Канал", "c1"], ["13 Час відповіді нам", "c2"], ["14 Зникав на 2+ тижні", "c3"],
+      ["15 Частота його контакту", "c4"], ["16 Поза робочим часом", "c5"],
+      ["17 Потрібна періодичність зустрічей", "c6"]
+    ]],
+    ["Критерії", [
+      ["18 Оцінює за", "__rank"], ["19 Формат подачі", "f1"],
+      ["20 Реакція на дод. комерційну", "k1"], ["21 Робили без комерційної", "k2"]
+    ]],
+    ["Оплати · тільки для ПМ", [
+      ["22 Графік оплат", "p1"], ["23 Типова затримка", "p2"],
+      ["24 Причини затримки", "p3"], ["25 Гальмували роботи", "p4"],
+      ["26 Що прискорює оплату", "p5"]
+    ], "pm"],
+    ["Фіксація", [
+      ["27 Що фіксує рішення", "x1"], ["28 Повертався до погодженого", "x2"], ["29 Після чого", "x3"]
+    ]],
+    ["СТОП-лист", [
+      ["30 Не робити", "s1a"], ["— бо було", "s1b"],
+      ["31 Не робити", "s2a"], ["— бо було", "s2b"],
+      ["32 Не робити", "s3a"], ["— бо було", "s3b"],
+      ["33 Додаткові заборони", "s5"], ["34 Що спрацювало", "s4"]
+    ]],
+    ["Терміни", [
+      ["35 Якість ТЗ", "n1"], ["36 Ітерацій погодження", "n2"], ["37 Вплив затримок", "n3"],
+      ["38 Зсув з його вини", "n4"], ["39 Порушення термінів у нас", "n5"],
+      ["40 Чи працює попередження", "n6"]
+    ]],
+    ["Підсумок", [
+      ["41 Одне речення для LEAD", "z1"], ["42 Не вклалося у варіанти", "z4"],
+      ["43 Впевненість", "z2"], ["44 Є що передати усно", "z3"]
+    ]]
+  ];
+
+  // an "Інше" answer carries its own text alongside it
+  function withOther(key, v){
+    var extra = document.getElementsByName(key + "_other");
+    if(!extra.length || v.indexOf("Інш") === -1) return v;
+    var t = (extra[0].value || "").trim();
+    return t ? v + " — " + t : v;
+  }
+
+  function valueOf(key){
+    if(key === "__rank"){
+      if(!picks.length) return "";
+      var extra = (document.getElementsByName("rank_other")[0].value || "").trim();
+      return picks.map(function(p, i){
+        var label = (p === "Інше" && extra) ? "Інше: " + extra : p;
+        return (i + 1) + ". " + label;
+      }).join(" · ");
+    }
+    var nodes = document.getElementsByName(key);
+    if(!nodes.length) return "";
+    var first = nodes[0];
+    if(first.type === "checkbox"){
+      var on = [];
+      Array.prototype.forEach.call(nodes, function(n){ if(n.checked) on.push(n.value); });
+      return withOther(key, on.join(" · "));
+    }
+    var val;
+    if(first.type === "radio"){
+      val = "";
+      Array.prototype.forEach.call(nodes, function(n){ if(n.checked) val = n.value; });
+    } else {
+      val = (first.value || "").trim();
+    }
+    return withOther(key, val);
+  }
+
+  function esc(s){
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function buildSummary(){
+    var html = "";
+    MAP.forEach(function(block){
+      if(block[2] === "pm" && !payShown()) return;
+      html += "<div class=\"sum-block\">" + block[0] + "</div>";
+      block[1].forEach(function(row){
+        var v = valueOf(row[1]);
+        html += "<div class=\"sum-row\"><div class=\"k\">" + row[0] + "</div>" +
+          "<div class=\"v" + (v ? "" : " empty") + "\">" + (v ? esc(v) : "не заповнено") + "</div></div>";
+      });
+    });
+    document.getElementById("summary").innerHTML = html;
+  }
+
+  // demo fill
+  var DEMO = {
+    resp: "Ірина Мельник (приклад)", q1: "ПМ", q2: "Resident", q3: "Вячеслав Чепіль, інвестор",
+    q4: ["КП", "ЕП"], q5: "Житловий комплекс, 1 черга", q6: "Зараз працюємо",
+    q7: "Приймає остаточно",
+    q8: ["Архітектурна концепція", "Посадка і ТЕПи", "Бюджет будівництва"],
+    q9: "Ні", q10: "Ні, перевірки по суті немає",
+    c1: "Телефон", c1_other: "", c2: "Години", c3: "Ні",
+    c4: "Кілька разів на день, дзвонить підряд",
+    c5: "Так, включно з вечорами й вихідними",
+    c6: "Раз на два тижні",
+    f1: "3D-візуалізація",
+    k1: "Тисне зробити в межах діючого договору",
+    k2: "Дві повні переробки посадки на ЕП після зміни вхідних даних — списали у витрати виробництва.",
+    p1: "Платить тільки після нагадувань", p2: "До двох тижнів",
+    p3: ["Внутрішня процедура погодження на їхньому боці", "Використовують затримку як важіль у переговорах"],
+    p4: "Піднімали питання, але роботи не зупиняли",
+    p5: "Рахунок рухається тільки після підписаного акта — надсилати акт одразу з передачею матеріалів.",
+    x1: "Усне «ок» тримається", x2: "Один-два",
+    x3: "Після отримання обмежень по висоті попросив переглянути посадку, узгоджену місяцем раніше.",
+    s1a: "Не казати «це неможливо зробити»",
+    s1b: "На нараді по концепції відповіли, що висоту підняти не можна — розмова зупинилася, рішення відклали на два тижні.",
+    s2a: "Не спиратись на норму як на єдиний аргумент",
+    s2b: "Сприйняв посилання на ДБН як відмовку; зрушили тільки тоді, коли показали варіант «як можна».",
+    s3a: "Не давати термін без буфера",
+    s3b: "Вважав, що оновлення концепції з новою посадкою робиться за дві години.",
+    s4: "Показувати, як буде виглядати і як продаватиметься.\nДавати два варіанти замість відмови.",
+    n1: "Загальне, довелося уточнювати", n2: "Дві-три", n3: "До двох тижнів",
+    n4: "Не визнає звʼязку, вимагає початкову дату",
+    n5: "Погрожує штрафами, але не застосовує",
+    n6: "Трохи помʼякшує",
+    z1: "Дозволяє амбітну архітектуру, але тисне на терміни — усе фіксувати листом того ж дня.",
+    z2: "2 — працював із ним стабільно", z3: "Ні"
+  };
+
+  document.getElementById("fillDemo").addEventListener("click", function(){
+    Object.keys(DEMO).forEach(function(k){
+      var nodes = document.getElementsByName(k);
+      if(!nodes.length) return;
+      var val = DEMO[k];
+      var first = nodes[0];
+      if(first.type === "checkbox"){
+        Array.prototype.forEach.call(nodes, function(n){ n.checked = val.indexOf(n.value) > -1; });
+      } else if(first.type === "radio"){
+        Array.prototype.forEach.call(nodes, function(n){ n.checked = (n.value === val); });
+      } else {
+        first.value = val;
+      }
+    });
+    picks.length = 0;
+    ["Архітектурна ідея й естетика", "Терміни", "Продаваність"].forEach(function(v){ picks.push(v); });
+    paintRank();
+    syncReveals();
+    show(1);
+  });
+
+  form.addEventListener("submit", function(e){ e.preventDefault(); });
+  syncReveals();
+  paintRank();
+  show(0);
+})();
+</script>
+
+</body></html>
