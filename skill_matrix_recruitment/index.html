@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Скіл-матриця кандидатів</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: one dark interview card per candidate, stacked in a 680px column; toolbar on top, sources at the bottom. Single dark look by choice. */
+:root{
+  --bg:#0f1420; --card:#161c2b; --tile:#1e2638; --tile-hi:#262f47; --line:#2c3650;
+  --fg:#eef1f7; --mut:#8d97ad; --faint:#5d6781;
+  --pur:#6f5ce6; --pur-soft:rgba(111,92,230,.24); --pur-txt:#c7bdff;
+  --g:#3fd68a; --g-soft:rgba(63,214,138,.16); --y:#f4b740; --y-soft:rgba(244,183,64,.16); --r:#f2596b; --r-soft:rgba(242,89,107,.16);
+  --f-body:"Golos Text", "Segoe UI", system-ui, sans-serif;
+  --f-disp:"Unbounded", "Golos Text", system-ui, sans-serif;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:20px 32px;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.top h1{font-family:var(--f-disp);font-weight:600;font-size:20px;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.top .sub{color:var(--mut);font-size:12.5px;margin-top:4px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sel{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--tile);color:var(--fg);max-width:100%}
+.btn{font:inherit;font-size:13px;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--tile);color:var(--fg);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--pur)}
+.btn.pri{background:var(--pur);border-color:var(--pur);color:#fff}
+.btn:disabled{opacity:.55;cursor:default}
+.btn:focus-visible,.sel:focus-visible,.t:focus-visible,.chip:focus-visible{outline:2px solid var(--pur-txt);outline-offset:2px}
+.notice{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--card);font-size:13px;display:flex;flex-direction:column;gap:6px}
+.notice.err{border-color:var(--r)}
+.notice b{font-weight:600}
+.list{display:flex;flex-direction:column;gap:8px}
+.bar{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;width:100%;text-align:left;font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.row:hover{border-color:var(--pur);background:var(--tile)}
+.row:focus-visible{outline:2px solid var(--pur-txt);outline-offset:2px}
+.row .nm{font-size:15px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.row .dt{font-size:12px;color:var(--mut);grid-column:1}
+.row .go{grid-column:2;grid-row:1 / span 3;color:var(--mut);font-size:18px}
+.row .bd{grid-column:1;display:flex;flex-wrap:wrap;gap:5px}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--line);color:var(--mut)}
+.pill.r{background:var(--r-soft);color:var(--r)}.pill.y{background:var(--y-soft);color:var(--y)}.pill.g{background:var(--g-soft);color:var(--g)}.pill.p{background:var(--pur-soft);color:var(--pur-txt)}
+.lhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.lhead input{font:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--tile);color:var(--fg);min-width:0;flex:1 1 220px}
+
+.cc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.cc-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.cc-h h2{margin:0;font-size:19px;font-weight:700;color:#fff;text-wrap:balance}
+.cc-meta{font-size:12px;color:var(--mut);margin-top:3px}
+.part{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:12px;padding:12px}
+.ph{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ph small{font-weight:400;text-transform:none;letter-spacing:0;color:var(--mut);font-size:12px}
+.num{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--pur);color:#fff;font-size:11px;letter-spacing:0}
+.lab{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+@media (max-width:540px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.t{border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--tile);position:relative;min-height:54px;cursor:pointer;text-align:left;font:inherit;color:inherit;display:block;width:100%}
+.t:hover{border-color:var(--pur)}
+.t.op{border-color:var(--pur);background:var(--tile-hi)}
+.t.fl{border-color:var(--r)}
+.t .l{font-size:11px;color:var(--mut);line-height:1.2;padding-right:12px}
+.t .v{font-size:20px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.t .v small{font-size:11px;font-weight:400;color:var(--mut)}
+.t .x{position:absolute;top:6px;right:7px;font-size:11px;color:var(--r)}
+.g{color:var(--g)}.y{color:var(--y)}.r{color:var(--r)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font:inherit;font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid var(--line);background:var(--tile);color:var(--fg);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip:hover,.chip.op{border-color:var(--pur)}
+.chip.op{background:var(--tile-hi)}
+.chip.fl{border-color:var(--r)}
+.lv{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:4px}
+.lv0{background:var(--line);color:var(--mut)}.lv1{background:var(--y-soft);color:var(--y)}.lv2{background:var(--pur-soft);color:var(--pur-txt)}.lv3{background:var(--g-soft);color:var(--g)}
+.wn{color:var(--r);font-size:11px}
+.det{margin-top:8px;border:1px solid var(--pur);border-radius:10px;background:var(--tile);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.dh{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:600}
+.band{display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px;font-size:12.5px;line-height:1.4;padding:6px 8px;border-radius:7px;color:var(--mut)}
+.band .rg{font-weight:700;font-variant-numeric:tabular-nums}
+.band.on{background:var(--pur-soft);color:var(--fg)}
+.band.on .rg{color:var(--pur-txt)}
+.scale{display:grid;gap:4px}
+.scale span{text-align:center;font-size:12px;font-weight:600;padding:5px 3px;border-radius:5px;background:var(--line);color:var(--mut)}
+.scale span.on{background:var(--pur);color:#fff;font-weight:700}
+.sub{font-size:12px;color:var(--mut)}
+.alert{font-size:12px;color:var(--r)}
+.sec .lab{margin-bottom:2px}
+.sec .val{font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--mut)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.ver{border-color:var(--y);background:rgba(244,183,64,.06)}
+.ver ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.ver li{font-size:13px;line-height:1.4}
+.ver li .q{display:block;font-size:12px;color:var(--mut)}
+.rk{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-right:6px;vertical-align:1px}
+.rk.H{background:var(--r);color:#fff}.rk.M{background:var(--y);color:#1a1405}.rk.L{border:1px solid var(--line);color:var(--mut)}
+.src{border-top:1px solid var(--line);padding-top:12px;font-size:12.5px;color:var(--mut);display:flex;flex-direction:column;gap:8px}
+.src a{color:var(--pur-txt);text-decoration:underline;text-underline-offset:2px}
+.src .live{color:var(--g);font-weight:600}
+.src .stale{color:var(--y);font-weight:600}
+.linkbtn{font:inherit;background:none;border:0;padding:0;color:var(--pur-txt);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.cfg{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}
+.cfg label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:4px}
+.cfg input{font:inherit;font-size:13px;padding:7px 9px;border-radius:7px;border:1px solid var(--line);background:var(--tile);color:var(--fg);width:100%;box-sizing:border-box}
+.cfg .acts{display:flex;gap:8px;flex-wrap:wrap}
+.skel{height:180px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--tile-hi);border:1px solid var(--line);color:var(--fg);padding:9px 14px;border-radius:9px;font-size:13px;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.btn,.t,.chip{transition:border-color .15s,background .15s}}
+</style>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Скіл-матриця кандидатів</h1>
+      <div class="sub" id="sub">Завантажую відповіді з Google Sheets…</div>
+    </div>
+  </div>
+
+  <div id="msg"></div>
+  <div class="bar" id="bar" hidden>
+    <button class="btn" id="back" type="button">← Усі кандидати</button>
+    <button class="btn pri" id="pdfOne" type="button">Експорт у PDF</button>
+  </div>
+  <div class="list" id="list"><div class="skel"></div></div>
+
+  <div class="legend">
+    <span><i style="background:var(--g)"></i>сильно</span>
+    <span><i style="background:var(--y)"></i>середньо</span>
+    <span><i style="background:var(--r)"></i>слабко</span>
+    <span><i style="border:2px solid var(--r)"></i>рекрутер: «самостійно», самооцінка ≤ 4</span>
+  </div>
+
+  <div class="src" id="src">
+    <div>Джерела:
+      <a id="lnkRec" href="#" target="_blank" rel="noopener">Відповіді рекрутерів ↗</a> ·
+      <a id="lnkHard" href="#" target="_blank" rel="noopener">Самооцінка hard skills ↗</a> ·
+      <a href="https://docs.google.com/forms/d/1IptkoSza-E5D08lYVpduMlkud73akpdWscaFYdVDjc0/edit" target="_blank" rel="noopener">Форма рекрутера ↗</a> ·
+      <a href="https://docs.google.com/forms/d/1c9-fiiKYhAFi98g6EYrKpOAfF1_6hY2-LnJX-_92uig/edit" target="_blank" rel="noopener">Форма самооцінки ↗</a>
+    </div>
+    <div>дані: <span id="state">завантаження…</span> · <button class="linkbtn" id="refresh" type="button">оновити</button> · <button class="linkbtn" id="cfgBtn" type="button" aria-expanded="false">налаштувати посилання</button></div>
+    <div class="cfg" id="cfg" hidden>
+      <label for="inRec">CSV-посилання таблиці рекрутерів (Опублікувати в інтернеті → CSV)<input id="inRec" type="url"></label>
+      <label for="inHard">CSV-посилання таблиці самооцінки (Опублікувати в інтернеті → CSV)<input id="inHard" type="url"></label>
+      <div class="acts"><button class="btn pri" id="cfgSave" type="button">Зберегти й завантажити</button><button class="btn" id="cfgReset" type="button">Повернути з CONFIG</button></div>
+      <div class="sub">Збережені тут посилання діють лише у вашому браузері. Щоб змінити їх для всіх, вставте посилання в CONFIG у файлі index.html.</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  // ================== НАЛАШТУВАННЯ ==================
+  // Порядок двох посилань не важливий: сторінка сама визначає, де анкета рекрутера, а де самооцінка (за колонкою Revit).
+  // Усередині Claude сторінка читає таблиці через Google Drive за посиланнями recSheet / hardSheet.
+  // На сайті (GitHub Pages) — за опублікованими CSV-посиланнями recCsv / hardCsv.
+  // CSV-посилання з Google Sheets: Файл → Поділитися → Опублікувати в інтернеті →
+  // вибрати аркуш «Відповіді форми (1)» → формат «Значення, розділені комами (.csv)» → Опублікувати.
+  const CONFIG = {
+    recCsv:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vSKZkLOwx1XwzwD3fPYcwwln_ukWadAYXIldbFYze_4ha6qFQFRoZs5X0O37DiQOas-P4T7eS0axoBI/pub?output=csv',   // таблиця «SKILL MATRIX (рекрутери) (Відповіді)»
+    hardCsv: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTnNv7Nb92oUWe46pk51Q8o7rqfg_X9orwfPY-xAvTNmeCJplsTPLLNNEUtaRs1x3ccVtSBlYav7Hdb/pub?output=csv',   // таблиця «HARD SKILL MATRIX (Відповіді)»
+    // Звичайні посилання на таблиці: для читання в Claude і для блоку «Джерела»
+    recSheet:  'https://docs.google.com/spreadsheets/d/1WKd-sktcPQubj-MRiu0vNk9mya52IbM5t6zxTTx3axM/edit?gid=350974351#gid=350974351',
+    hardSheet: 'https://docs.google.com/spreadsheets/d/1kIoS5ZgBYRV5c3Y7VaquoGIEMxOaQErJdk_LyDKJo0k/edit?gid=1161791758#gid=1161791758',
+    refreshMinutes: 5
+  };
+  // ====================================================
+  const SHORT = {
+    'Знання містобудівної документації':'Містобуд. документація',
+    'Знання норм та їх застосування':'Норми та застосування',
+    'Знання процесів та методів проєктування':'Процеси/методи проєкт.',
+    "Якість об'ємно просторових рішень":"Об'ємно-простор. рішення",
+    'Якість технічних рішень':'Технічні рішення',
+    'Знання суміжних розділів':'Суміжні розділи',
+    'Якість графічної подачі проекту':'Графічна подача',
+    'Розділ ГП та урбаністика':'ГП та урбаністика',
+    '5D RENDER / MAX / AI та ін.':'5D/Render/AI',
+    'Indesign/Illustrator':'InDesign/Illustrator',
+    'Вдкритість у спілкуванні':'Відкритість',
+    'Відкритість у спілкуванні':'Відкритість',
+    'Чіткість та структурованість у комунікації':'Чіткість і структурність',
+    'Коректність і толерантність у комунікації':'Коректність, толерантність',
+    'Навички самопрезентації':'Самопрезентація',
+    'Вмотивованість та зацікавленість':'Мотивація'
+  };
+  const SOFTWARE = ['Revit','AutoCAD','Sketchup','5D RENDER / MAX / AI та ін.','Indesign/Illustrator','Photoshop'];
+  const STAGE = {'концепція':'Концепт','ескізний проект':'ЕП','проект':'П','робоча документація':'РД'};
+  const LEVELS = ['не працював','працював під супервізією','працював самостійно','керував процесами та командою'];
+  const LVS = ['не працював','супервізія','самостійно','керував'];
+  const LINK = {
+    'концепція':["Якість об'ємно просторових рішень"],
+    'ескізний проект':["Якість об'ємно просторових рішень"],
+    'проект':['Знання норм та їх застосування'],
+    'робоча документація':['Revit','AutoCAD'],
+    'пошук планувальних рішень':["Якість об'ємно просторових рішень"],
+    'пошук фасадних рішень':["Якість об'ємно просторових рішень"],
+    'оформлення креслень':['Якість графічної подачі проекту'],
+    'розробка детальних вузлів':['Якість технічних рішень'],
+    'розробка візуалізацій':['5D RENDER / MAX / AI та ін.'],
+    'розробка генерального плану':['Розділ ГП та урбаністика'],
+    'координація з суміжними розділами':['Знання суміжних розділів']
+  };
+  const ASK = {
+    'робоча документація':'Попросити показати аркуші РД, які робив(-ла) особисто; у якій програмі велися модель і креслення.',
+    'оформлення креслень':'Показати 2–3 аркуші з портфоліо: штампи, марковка, специфікації. Хто їх оформлював?',
+    'розробка візуалізацій':'Хто робив візуалізації в цих проєктах: кандидат чи візуалізатор? У якій програмі?',
+    'пошук планувальних рішень':'Тестова задача: швидкий планувальний ескіз секції чи поверху (15–20 хв) з поясненням логіки.',
+    'пошук фасадних рішень':'Розібрати один фасад з портфоліо: які варіанти розглядались і чому обрано цей.',
+    'концепція':'Роль на стадії концепції: генерував(-ла) рішення чи доопрацьовував(-ла) чужі.',
+    'ескізний проект':'Хто вів ЕП і погодження із замовником; що було особистою частиною кандидата.',
+    'проект':'Кейс із нормами: які зауваження експертизи знімав(-ла) і як.',
+    'розробка детальних вузлів':'Показати вузол, розроблений самостійно, і пояснити рішення.',
+    'розробка генерального плану':'Який ГП робив(-ла) сам(-а), з якими обмеженнями (ДПТ, ДБН, відступи).',
+    'координація з суміжними розділами':'Ситуаційне питання: суміжник змінив вихідні дані за тиждень до здачі. Що робив(-ла)?'
+  };
+  const DESC = {"Revit": ["0–5: базове моделювання та оформлення: стіни, перекриття, дахи, вікна, двері, приміщення, осі, рівні, плани, розрізи, фасади, вузли, легенди, матеріали, специфікації, DWG/IFC, браузер проєкту", "5–6: автоматичне маркування, Stair Path, налаштування сімейств і анотацій, Worksets, спільні координати, матеріали, 3D, Copy/Monitor, Dynamo, IFC/DWG, Mass, складні стіни, сходи, огородження, топографія, Model In-place", "6–10: складні сімейства, параметри, профілі, адаптивні сімейства, складне моделювання, 3D, Title Blocks, сімейства дверей/вікон/колон, графічні відомості, чистка та публікація файлів, NWC, Dynamo/IFC/Navisworks"], "AutoCAD": ["0–3: інтерфейс, командний рядок, 2D-навігація, базові геометричні форми, масштабування, Move/Copy/Rotate/Trim/Extend, прості креслення, Layers", "3–7: Mirror/Array/Fillet/Chamfer, Blocks, Xrefs, гарячі клавіші, розміри, текст, таблиці, Layers, Layout, скрипти FLAT/SUMLINE, підготовка креслень, друк та експорт PDF/DWG/DXF", "7–10: параметричне креслення, Dynamic Blocks, 3D-моделювання, Boolean, макроси, Lisp/VBA/AutoLISP, шаблони Title Block, хмарна спільна робота"], "Sketchup": ["0–3: інтерфейс, навігація 3D, базові форми, Move/Rotate, просте моделювання, матеріали, текстури, камери, організація файлу", "3–7: складні форми, Push/Pull, Follow Me, Tags, групи та компоненти, текстури, освітлення, камери, прозорість, імпорт/експорт DWG/PDF/JPG, взаємодія з CAD/BIM", "7–10: оптимізація та чистка моделей, плагіни, складні архітектурні елементи, криволінійні поверхні, сходи, V-Ray/Enscape/Lumion, реалістичний рендер, командна робота"], "5D RENDER / MAX / AI та ін.": ["0–4: імпорт моделей, навігація, трансформації, камери, базові матеріали, UV, ассети, просте освітлення, налаштування та базовий рендер", "4–9: PBR-матеріали, кастомні текстури, каустика, скатери, декалі, інтерактивні ассети, OBJ/FBX, складне освітлення, фотореалізм, LOD, оптимізація, терейни, посткорекція, AI-інструменти", "9–10: анімація камер та об’єктів, ключові кадри, зміна освітлення в часі, Phasing Animation, експорт і монтаж відео"], "Indesign/Illustrator": ["0–3: створення аркушів, базові форми, вставка та масштабування креслень, базовий експорт, кольори бренду; створення простих макетів, робота із зображеннями, текстом, колонками та полями", "3–7: композиція постерів, шари, групи, векторизація, піктограми, типографіка, імпорт CAD/Revit; Master Pages, стилі, портфоліо, Packaging, Preflight, зміст, нумерація, інтеграція Illustrator/InDesign", "7–10: складні презентації, 3D-об’єкти, фірмовий стиль, Appearance та ефекти; професійні багатосторінкові подачі, автоматизація стилями, великі документи, ePUB, інтерактивний PDF, грід-системи, GREP-стилі"], "Photoshop": ["0–3: створення документів, Layers, масштабування, корекція кольору, базова ретуш, текстури, вирізання об’єктів, прості колажі, виділення, фільтри, експорт JPG/PNG/TIFF", "3–7: Layer Masks, Clipping Masks, режими змішування, Pen Tool, Refine Edge, Adjustment Layers, ретуш, видалення об’єктів, Layer Styles, Perspective Warp, Blur Gallery, підготовка до друку та вебу, робота зі світлом", "7–10: AI-інструменти, складні монтажі, світлові та атмосферні ефекти, реалістичні композиції, Dodge & Burn, професійна робота з кольором, Actions та автоматизація"], "Знання містобудівної документації": ["0–3: базові закони та ДБН/ДСТУ, поняття ГП, ДПТ, зонінгу, види містобудівної документації, структура документів, читання планів та схем", "3–7: містобудівні норми, місцеві документи, функціональне зонування, інженерні комунікації, транспорт, озеленення, екологічні вимоги, дозвільні процедури, земельні питання", "7–10: комплексне знання містобудівних норм, міжнародні стандарти, сталий розвиток, GIS/BIM, аналіз впливу рішень, комплексний аналіз території, інтеграція транспортних, соціальних, інженерних та екологічних рішень"], "Знання норм та їх застосування": ["0–3: етапи проєктування, основні терміни, типи проєктування, ескізування, 2D/3D-моделювання, робота з ТЗ, базова командна робота", "3–7: планування процесу, різні типи об’єктів, взаємодія архітектури, інженерії та екології, концептуальне моделювання, сталий дизайн, робота з відгуками замовника, координація команди", "7–10: повний цикл проєктування, BIM/parametric design, міжнародні стандарти, інноваційні технології, 3D/VR, сталий розвиток, управління проєктами, ризики, стратегічне планування"], "Знання процесів та методів проєктування": ["0–3: базова нормативна документація, ДБН/ДСТУ, стадії проєктування, архітектурно-будівельні креслення, пожежна безпека, доступність, санітарні та екологічні вимоги", "3–7: закони України, ключові ДБН/ДСТУ, склад і оформлення документації, перевірка проєктів, узгодження розділів, аналіз релевантних норм, застосування норм у проєктуванні та погодженнях", "7–10: комплексне знання ДБН, ДСТУ, законів і міжнародних стандартів, аналітичне застосування норм, складні проєкти, погодження з органами, робота з відхиленнями та змінами нормативів"], "Якість об'ємно просторових рішень": ["0–3: простір, форма, об’єм, пропорції, масштаб, композиція, базова функціональність та інтеграція об’єкта в середовище", "3–7: просторова композиція, взаємодія об’ємів, світло, тінь, ландшафт, функціональність, складні форми, багаторівневі простори, ергономіка", "7–10: складні та інноваційні просторові рішення, пропорції, матеріали, форми, культурний/соціальний/екологічний контекст, великі комплекси, сучасні технології, авторські рішення"], "Якість технічних рішень": ["0–3: базові будівельні матеріали, конструкції, стіни, підлоги, перекриття, покрівлі, будівельні процеси, інженерні та конструктивні системи", "3–7: властивості матеріалів, теплопровідність, конструктивні системи, типові вузли, будівельні технології, фундаменти, покрівлі, інженерні системи та координація з КБ", "7–10: глибоке знання матеріалів і конструкцій, їх вартості та реалізації, оцінка якості, вибір технологій, складні вузли, оптимізація інженерних і конструктивних рішень"], "Знання суміжних розділів": ["0–3: базове розуміння КБ, ОВ, ВК, інженерних систем, кошторису та взаємодії із суміжними спеціалістами", "3–7: конструктивні системи, фундаменти, каркаси, перекриття, інженерні мережі, кошторис, координація архітектури з конструкторами та інженерами", "7–10: глибоке розуміння конструкцій, ОВ/ВК і кошторису, інтеграція суміжних рішень у складні проєкти, координація спеціалістів, BIM, технічне керівництво"], "Якість графічної подачі проекту": ["0–3: базова композиція, кольори та шрифти; прості креслення (плани, фасади, розрізи); робота в AutoCAD/SketchUp; базова візуалізація та представлення ідей", "3–7: комплексні креслення та візуалізації; робота з Revit, 3ds Max, Adobe Suite; передача концепції, матеріалів і контексту; адаптація подачі під замовника; колажі, 3D-моделі, рендери; зрозуміла графічна комунікація", "7–10: професійні візуалізації, фотореалістичні рендери та анімації; індивідуальний графічний стиль; VR/AR та інтерактивні презентації; комплексна подача для різних аудиторій; координація графічної роботи команди та створення стандартів подачі"], "Розділ ГП та урбаністика": ["0–3: роль генерального плану, базові ДБН та обмеження; функціональне зонування, розміщення будівель, рельєф, озеленення; основи транспортної мережі, проїздів, пішохідних і велозон, паркування", "3–7: нормативні вимоги, санітарні та пожежні обмеження, відстані, висотність і щільність; аналіз рельєфу, ґрунтів, клімату та оточення; оптимальне розміщення забудови, транспортної та рекреаційної складових; доступність та інклюзивність; інженерні мережі; координація з суміжними спеціалістами; GIS/BIM, екологічні рішення, планування рельєфу та базова оцінка вартості", "7–10: глибоке знання містобудівних норм, документації, міжнародних стандартів та сучасної урбаністики; аналіз екологічних, соціальних і економічних факторів; BIM/GIS та цифрове моделювання територій; сталий розвиток, 15-minute city, mixed-use, Smart City; розробка комплексних і варіативних генпланів; інтеграція транспорту, інженерії, соціальної та екологічної складових; комплексний аналіз території, оцінка її потенціалу та ризиків; вирішення складних планувальних задач; керування міждисциплінарними командами та прийняття стратегічних рішень"], "Управлінські навички": ["0–3: планування власної роботи та завдань на тиждень; контроль дедлайнів і контрольних точок; своєчасне звітування; наставництво стажерів та молодших архітекторів", "3–6: планування роботи проєктної команди на етапі проєктування; складання реалістичних графіків і прогнозів; делегування та контроль завдань; розуміння взаємозв’язків між командами й розділами; пріоритизація та гнучке планування роботи", "6–10: планування та контроль роботи групи архітекторів на кількох проєктах; складання графіків і прогнозів для декількох проєктів; ефективне делегування, контрольні точки та дотримання дедлайнів"]};
+
+  const $ = id => document.getElementById(id);
+  const norm = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  const key = s => norm(s).toLowerCase();
+  const el = (tag, c, txt) => { const e = document.createElement(tag); if (c) e.className = c; if (txt !== undefined && txt !== null) e.textContent = txt; return e; };
+  const cls10 = v => isNaN(v) ? '' : v <= 4 ? 'r' : v <= 6 ? 'y' : 'g';
+  const cls7 = v => isNaN(v) ? '' : v <= 3 ? 'r' : v <= 5 ? 'y' : 'g';
+  const fileId = u => { const m = String(u || '').match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/); return m && m[1] !== 'e' ? m[1] : null; };
+  const isCsv = u => /^https:\/\/docs\.google\.com\/spreadsheets\/.+output=csv/i.test(String(u || '').trim());
+
+  // ---------- sources (per-viewer override) ----------
+  function loadSrc(){ let s = {}; try { s = JSON.parse(localStorage.getItem('sm-csv') || '{}') || {}; } catch (e) {} return { rec: s.rec || CONFIG.recCsv, hard: s.hard || CONFIG.hardCsv }; }
+  function saveSrc(s){ try { localStorage.setItem('sm-csv', JSON.stringify(s)); } catch (e) {} }
+  function clearSrc(){ try { localStorage.removeItem('sm-csv'); } catch (e) {} }
+  let SRC = loadSrc();
+  function paintSrc(){ $('lnkRec').href = CONFIG.recSheet; $('lnkHard').href = CONFIG.hardSheet; $('inRec').value = isCsv(SRC.rec) ? SRC.rec : ''; $('inHard').value = isCsv(SRC.hard) ? SRC.hard : ''; }
+
+  // ---------- parsing ----------
+  // Google Drive connector answer (inside Claude): base64 CSV in payload.content
+  function decodeDrive(res){
+    let p = res && res.payload;
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) {} }
+    if (!p || typeof p.content !== 'string') {
+      const t = (res && res.content || []).find(b => b.type === 'text');
+      if (t) { try { p = JSON.parse(t.text); } catch (e) {} }
+    }
+    if (!p || typeof p.content !== 'string') throw new Error('Google Drive повернув відповідь без вмісту файлу.');
+    const bin = atob(p.content.replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes).replace(/^\uFEFF/, '');
+  }
+  function parseCSV(t){
+    const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
+      else if (c !== '\r') f += c;
+    }
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    const clean = rows.filter(r => r.some(x => norm(x) !== ''));
+    return { headers: (clean[0] || []).map(norm), rows: clean.slice(1) };
+  }
+  function parseTs(s){ const m = norm(s).match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime() : 0; }
+  const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? NaN : n; };
+  function latest(list){ const by = new Map(); list.forEach(x => { const k = key(x.name); if (!k) return; const o = by.get(k); if (!o || x.ts >= o.ts) by.set(k, x); }); return by; }
+
+  function readRec(tbl){
+    const H = tbl.headers, idx = re => H.findIndex(h => re.test(h));
+    const iTs = 0, iName = idx(/ПІБ/i), iCom = idx(/Коментар/i), iStr = idx(/Сильні сторони/i), iTyp = idx(/Типологія/i);
+    const iWant = idx(/не стикався/i), iDiff = idx(/труднощі/i);
+    if (iName < 0) throw new Error('У таблиці рекрутерів немає колонки «ПІБ кандидата».');
+    const softEnd = iCom > -1 ? iCom : (iStr > -1 ? iStr : iName + 7);
+    const softI = []; for (let i = iName + 1; i < softEnd; i++) softI.push(i);
+    const strI = []; if (iStr > -1) for (let i = iStr; i < (iTyp > -1 ? iTyp : iStr + 1); i++) strI.push(i);
+    const grid = re => H.map((h, i) => { const m = h.match(re); return m ? { i, item: norm(m[1]).toLowerCase() } : null; }).filter(Boolean);
+    const stI = grid(/стаді\S*.*\[(.+?)\s*\]\s*$/i), tkI = grid(/задач.*\[(.+?)\s*\]\s*$/i);
+    return tbl.rows.map(r => {
+      const g = i => norm(r[i]);
+      const strengths = [...new Set(strI.map(g).filter(Boolean))].join('; ');
+      return {
+        name: g(iName), ts: parseTs(r[iTs]), tsText: g(iTs).slice(0, 10),
+        soft: softI.map(i => ({ label: H[i], v: num(r[i]) })),
+        comment: iCom > -1 ? g(iCom) : '', strengths, typology: iTyp > -1 ? g(iTyp) : '',
+        stages: stI.map(x => ({ item: x.item, level: g(x.i) })),
+        tasks: tkI.map(x => ({ item: x.item, level: g(x.i) })),
+        want: iWant > -1 ? g(iWant) : '', diff: iDiff > -1 ? g(iDiff) : ''
+      };
+    });
+  }
+  function readHard(tbl){
+    const H = tbl.headers, iName = H.findIndex(h => /ПІБ/i.test(h));
+    if (iName < 0) throw new Error('У таблиці самооцінки немає колонки «ПІБ».');
+    return tbl.rows.map(r => ({
+      name: norm(r[iName]), ts: parseTs(r[0]), tsText: norm(r[0]).slice(0, 10),
+      skills: H.map((h, i) => ({ name: h, v: num(r[i]) })).filter((s, i) => i > iName && s.name)
+    }));
+  }
+
+  // ---------- model ----------
+  const lvIdx = s => LEVELS.indexOf(key(s));
+  const isInd = s => /самостійно|керував/i.test(s);
+  function build(rec, hard){
+    const R = latest(rec), Hh = latest(hard), keys = new Set([...R.keys(), ...Hh.keys()]);
+    const out = [];
+    keys.forEach(k => {
+      const r = R.get(k) || null, h = Hh.get(k) || null;
+      const score = name => { if (!h) return null; const s = h.skills.find(x => key(x.name) === key(name)); return s && !isNaN(s.v) ? s.v : null; };
+      const claim = (grp, x) => {
+        const links = LINK[x.item] || [];
+        let best = null, bestName = links[0] || '';
+        links.forEach(n => { const v = score(n); if (v !== null && (best === null || v > best)) { best = v; bestName = n; } });
+        return { grp, item: x.item, level: x.level, skill: bestName, skills: links.join(' / '), self: best };
+      };
+      const claims = r ? r.stages.map(x => claim('Стадія', x)).concat(r.tasks.map(x => claim('Задача', x))) : [];
+      claims.forEach(c => { c.bad = isInd(c.level) && c.self !== null && c.self <= 4; c.mid = isInd(c.level) && c.self !== null && c.self > 4 && c.self <= 6; });
+      out.push({ k, name: (r || h).name, r, h, claims, checks: checks(r, h, claims), ts: Math.max(r ? r.ts : 0, h ? h.ts : 0) });
+    });
+    return out.sort((a, b) => b.ts - a.ts);
+  }
+  function checks(r, h, claims){
+    const out = [], add = (blk, sig, risk, q) => out.push({ blk, sig, risk, q, p: risk === 'Високий' ? 1 : risk === 'Середній' ? 2 : 3 });
+    claims.forEach(c => {
+      if (!isInd(c.level) || c.self === null || c.self > 6) return;
+      add((c.grp === 'Стадія' ? 'Стадія: ' : 'Задача: ') + c.item,
+        'рекрутер: «' + c.level + '», самооцінка «' + c.skill + '» = ' + c.self + '/10',
+        c.self <= 4 ? 'Високий' : 'Середній', ASK[c.item] || 'Попросити приклад проєкту з особистою роллю.');
+    });
+    const lv = claims.map(c => c.level).filter(Boolean);
+    if (lv.length > 3 && new Set(lv).size === 1)
+      add('Анкета рекрутера', 'усі ' + lv.length + ' стадій і задач позначені однаково: «' + lv[0] + '»', 'Середній', 'Попросити кандидата самому ранжувати задачі від найсильнішої до найслабшої.');
+    if (r) r.soft.forEach(s => {
+      if (isNaN(s.v) || s.v > 4) return;
+      const L = norm(s.label);
+      add('Soft skills', L + ' = ' + s.v + '/7' + (s.v <= 3 ? ', нижче середнього' : ', середній рівень'), s.v <= 3 ? 'Середній' : 'Низький',
+        /Чіткість/i.test(L) ? 'Попросити за 2 хв структуровано розповісти про останній проєкт.' :
+        /самопрезентац/i.test(L) ? 'Дати презентувати один проєкт з портфоліо як замовнику.' :
+        /мотивован/i.test(L) ? 'Чому AVR і чому зараз; що хоче робити через рік.' :
+        /домовленост/i.test(L) ? 'Попросити приклад, коли не встиг(-ла) в термін: що зробив(-ла).' :
+        'Ситуаційне питання на цю навичку.');
+    });
+    if (r) {
+      const empty = s => !s || /^немає відповіді$/i.test(s);
+      if (empty(r.want) || empty(r.diff)) add('Розвиток', 'немає відповіді на питання про бажані задачі чи труднощі', 'Низький', 'Що хоче прокачати за перший рік; яка задача останнім часом далась найважче.');
+      if (!r.comment) add('Анкета рекрутера', 'порожній коментар рекрутера', 'Низький', 'Отримати від рекрутера якісний коментар до співбесіди.');
+    } else add('Анкета рекрутера', 'рекрутер ще не заповнив анкету', 'Середній', 'Провести скринінг і заповнити форму рекрутера до співбесіди.');
+    if (!h) add('Самооцінка', 'кандидат ще не пройшов самооцінку hard skills', 'Середній', 'Надіслати кандидату форму HARD SKILLS MATRIX до співбесіди.');
+    return out.sort((a, b) => a.p - b.p);
+  }
+
+  // ---------- card ----------
+  function band(desc, v){
+    const bs = desc.map(s => { const m = s.match(/^(\d+)\s*[–-]\s*(\d+)\s*:\s*(.*)$/); return m ? { lo: +m[1], hi: +m[2], txt: m[3] } : { lo: 0, hi: 10, txt: s }; });
+    let i = bs.findIndex(b => v <= b.hi); if (i < 0) i = bs.length - 1;
+    return { bs, i };
+  }
+  function bandRows(det, name, v){
+    const d = DESC[name]; if (!d) return;
+    const b = band(d, isNaN(v) || v === null ? 0 : v);
+    b.bs.forEach((x, j) => { const row = el('div', 'band' + (j === b.i ? ' on' : '')); row.append(el('span', 'rg', x.lo + '–' + x.hi), el('span', 'tx', x.txt)); det.appendChild(row); });
+  }
+  function head(det, title, val, c){ const hd = el('div', 'dh'); hd.append(el('span', '', title), el('b', c || '', val)); det.appendChild(hd); }
+
+  function card(c){
+    const root = el('article', 'cc'); root.dataset.k = c.k;
+    function section(lab, kind){
+      const wrap = el('div'); wrap.appendChild(el('div', 'lab', lab));
+      const box = el('div', kind); const det = el('div', 'det'); det.hidden = true;
+      wrap.append(box, det); return { wrap, box, det, id: lab };
+    }
+    // Only one explanation open per card: opening another closes the previous one.
+    let cur = null;
+    function closeCur(){ if (!cur) return; cur.sec.det.hidden = true; cur.sec.det.textContent = ''; cur.node.classList.remove('op'); cur = null; }
+    function hook(node, sec, k, buildFn){
+      node.dataset.k = k;
+      node.setAttribute('aria-expanded', 'false');
+      node.addEventListener('click', () => {
+        const same = cur && cur.node === node;
+        if (cur) cur.node.setAttribute('aria-expanded', 'false');
+        closeCur();
+        if (same) return;
+        cur = { node, sec }; node.classList.add('op'); node.setAttribute('aria-expanded', 'true');
+        sec.det.hidden = false; buildFn(sec.det);
+      });
+    }
+    function tile(sec, label, v, max, flagged){
+      const t = el('button', 't' + (flagged ? ' fl' : '')); t.type = 'button';
+      t.appendChild(el('div', 'l', label));
+      const n = el('div', 'v ' + (max === 7 ? cls7 : cls10)(v), isNaN(v) ? '—' : String(v));
+      if (!isNaN(v)) n.appendChild(el('small', '', ' /' + max));
+      t.appendChild(n); if (flagged) t.appendChild(el('span', 'x', '⚠'));
+      sec.box.appendChild(t); return t;
+    }
+
+    // header
+    const hd = el('div', 'cc-h'); const hl = el('div');
+    hl.append(el('h2', '', c.name), el('div', 'cc-meta', [c.r ? 'анкета рекрутера ' + c.r.tsText : 'анкети рекрутера ще немає', c.h ? 'самооцінка ' + c.h.tsText : 'самооцінки ще немає'].join(' · ')));
+    hd.append(hl); root.appendChild(hd);
+
+    // 1 recruiter
+    const p1 = el('section', 'part');
+    const ph1 = el('div', 'ph'); ph1.append(el('span', 'num', '1'), document.createTextNode('Оцінка рекрутера'), el('small', '', c.r ? 'форма SKILL MATRIX (рекрутери), ' + c.r.tsText : 'ще не заповнена'));
+    p1.appendChild(ph1);
+    if (c.r) {
+      const ss = section('Soft skills · шкала 1–7 · натисніть на оцінку', 'tiles');
+      c.r.soft.forEach(s => {
+        const L = norm(s.label);
+        hook(tile(ss, SHORT[L] || L, s.v, 7), ss, 'soft:' + L, det => {
+          head(det, L, isNaN(s.v) ? '—' : s.v + ' /7', cls7(s.v));
+          const sc = el('div', 'scale'); sc.style.gridTemplateColumns = 'repeat(7,minmax(0,1fr))';
+          for (let i = 1; i <= 7; i++) sc.appendChild(el('span', i === s.v ? 'on' : '', String(i)));
+          det.append(sc, el('div', 'sub', '1 — дуже слабко, 4 — середньо, 7 — відмінно. У формі рекрутера описів рівнів немає, лише шкала 1–7.'));
+        });
+      });
+      p1.appendChild(ss.wrap);
+      [['Стадія', 'Стадії проєкту · натисніть на стадію'], ['Задача', 'Задачі, які може виконувати · натисніть на задачу']].forEach(([grp, lab]) => {
+        const sec = section(lab, 'chips');
+        c.claims.filter(x => x.grp === grp).forEach(x => {
+          const li = lvIdx(x.level);
+          const ch = el('button', 'chip' + (x.bad ? ' fl' : '')); ch.type = 'button';
+          ch.append(el('span', '', grp === 'Стадія' ? (STAGE[x.item] || x.item) : x.item), el('span', 'lv lv' + (li < 0 ? 0 : li), li < 0 ? (x.level || '—') : LVS[li]));
+          if (x.bad) ch.appendChild(el('span', 'wn', '⚠'));
+          hook(ch, sec, 'cl:' + x.item, det => {
+            head(det, x.item, li < 0 ? (x.level || '—') : LEVELS[li]);
+            const sc = el('div', 'scale'); sc.style.gridTemplateColumns = 'repeat(4,minmax(0,1fr))';
+            LEVELS.forEach((l, i) => sc.appendChild(el('span', i === li ? 'on' : '', l)));
+            det.appendChild(sc);
+            if (x.skills) {
+              det.appendChild(el('div', 'sub', 'Звірка з самооцінкою: ' + x.skills + (x.self === null ? ' — немає даних' : ' = ' + x.self + '/10')));
+              if (x.self !== null) bandRows(det, x.skill, x.self);
+              if (x.bad) det.appendChild(el('div', 'alert', '⚠ Рекрутер зафіксував самостійну роботу, а кандидат оцінює себе на базовому рівні. Перевірити прикладом на співбесіді.'));
+            }
+          });
+          sec.box.appendChild(ch);
+        });
+        if (!sec.box.childNodes.length) sec.box.textContent = '—';
+        p1.appendChild(sec.wrap);
+      });
+      [['Сильні сторони / найбільше досвіду', c.r.strengths], ["Типологія об'єктів", c.r.typology], ['З якими задачами не стикався, але хотів би', c.r.want], ['Задачі, що викликають труднощі', c.r.diff], ['Коментар рекрутера', c.r.comment || 'не заповнено']].forEach(([l, v]) => {
+        const s = el('div', 'sec'); s.append(el('div', 'lab', l), el('div', 'val', v || '—')); p1.appendChild(s);
+      });
+    }
+    root.appendChild(p1);
+
+    // 2 self-assessment
+    const p2 = el('section', 'part');
+    const ph2 = el('div', 'ph'); ph2.append(el('span', 'num', '2'), document.createTextNode('Самооцінка кандидата'), el('small', '', c.h ? 'форма HARD SKILLS MATRIX, ' + c.h.tsText : 'ще не пройдена'));
+    p2.appendChild(ph2);
+    if (c.h) {
+      const groups = [['Програми', c.h.skills.filter(s => SOFTWARE.some(n => key(n) === key(s.name)))], ['Компетенції', c.h.skills.filter(s => !SOFTWARE.some(n => key(n) === key(s.name)))]];
+      const hs = section('Hard skills · шкала 1–10 · натисніть на оцінку, щоб побачити опис рівня', 'tiles');
+      groups.forEach(([g, list]) => list.forEach(s => {
+        const nm = norm(s.name);
+        const hits = c.claims.filter(x => x.bad && key(x.skill) === key(nm)).map(x => x.item);
+        hook(tile(hs, SHORT[nm] || nm, s.v, 10, hits.length > 0), hs, 'hd:' + nm, det => {
+          head(det, nm, isNaN(s.v) ? '—' : s.v + ' /10', cls10(s.v));
+          if (DESC[nm]) bandRows(det, nm, s.v); else det.appendChild(el('div', 'sub', 'У формі немає опису рівнів для цієї навички.'));
+          if (hits.length) det.appendChild(el('div', 'alert', '⚠ Рекрутер позначив «самостійно»: ' + hits.join(', ')));
+          det.appendChild(el('div', 'sub', 'Підсвічено рівень, у який потрапляє самооцінка. Описи рівнів взято з форми самооцінки.'));
+        });
+      }));
+      p2.appendChild(hs.wrap);
+    }
+    root.appendChild(p2);
+
+    // 3 verdict
+    const p3 = el('section', 'part ver');
+    const ph3 = el('div', 'ph'); ph3.append(el('span', 'num', '3'), document.createTextNode('Рекомендовано перевірити на співбесіді'));
+    const ol = el('ol');
+    c.checks.forEach(x => {
+      const li = el('li'); const code = x.risk === 'Високий' ? 'H' : x.risk === 'Середній' ? 'M' : 'L';
+      li.append(el('span', 'rk ' + code, x.risk), el('span', '', x.blk + ': ' + x.sig), el('span', 'q', '→ ' + x.q));
+      ol.appendChild(li);
+    });
+    if (!c.checks.length) ol.appendChild(el('li', '', 'Суттєвих розбіжностей не знайдено.'));
+    p3.append(ph3, ol); root.appendChild(p3);
+    return root;
+  }
+
+  // ---------- render ----------
+  let MODEL = [], loadedAt = null;
+  let VIEW = null, Q = '', LAST = null;
+  function summary(c){
+    const hi = c.checks.filter(x => x.risk === 'Високий').length, mid = c.checks.filter(x => x.risk === 'Середній').length;
+    const avg = a => { const v = a.filter(x => !isNaN(x)); return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length * 10) / 10 : null; };
+    return { hi, mid, soft: c.r ? avg(c.r.soft.map(s => s.v)) : null, hard: c.h ? avg(c.h.skills.map(s => s.v)) : null };
+  }
+  function render(){
+    const list = $('list'); list.textContent = '';
+    const cur = VIEW && MODEL.find(c => c.k === VIEW);
+    $('bar').hidden = !cur;
+    if (cur) {
+      list.appendChild(card(cur));
+      $('sub').textContent = 'Карта кандидата';
+      if (LAST !== VIEW) { try { window.scrollTo(0, 0); } catch (e) {} }
+      LAST = VIEW;
+      return;
+    }
+    VIEW = null; LAST = null;
+    $('sub').textContent = MODEL.length ? MODEL.length + ' ' + plural(MODEL.length, 'кандидат', 'кандидати', 'кандидатів') + ' · натисніть на кандидата, щоб відкрити карту' : 'Відповідей поки немає';
+    if (!MODEL.length) { list.appendChild(el('div', 'notice', 'У таблицях поки немає жодної відповіді.')); return; }
+    const lh = el('div', 'lhead');
+    const inp = el('input'); inp.type = 'search'; inp.id = 'q'; inp.placeholder = 'Пошук за ПІБ'; inp.setAttribute('aria-label', 'Пошук кандидата за ПІБ'); inp.value = Q;
+    lh.appendChild(inp); list.appendChild(lh);
+    const box = el('div', 'list'); list.appendChild(box);
+    const draw = () => {
+      box.textContent = '';
+      const shown = MODEL.filter(c => !Q || key(c.name).includes(key(Q)));
+      shown.forEach(c => {
+        const s = summary(c);
+        const r = el('button', 'row'); r.type = 'button';
+        r.appendChild(el('span', 'nm', c.name));
+        r.appendChild(el('span', 'go', '›'));
+        r.appendChild(el('span', 'dt', [c.r ? 'рекрутер ' + c.r.tsText : 'рекрутер — ще ні', c.h ? 'самооцінка ' + c.h.tsText : 'самооцінка — ще ні'].join(' · ')));
+        const bd = el('span', 'bd');
+        if (s.soft !== null) bd.appendChild(el('span', 'pill ' + cls7(s.soft), 'soft ' + s.soft + '/7'));
+        if (s.hard !== null) bd.appendChild(el('span', 'pill ' + cls10(s.hard), 'hard ' + s.hard + '/10'));
+        if (s.hi) bd.appendChild(el('span', 'pill r', s.hi + ' ' + plural(s.hi, 'розбіжність', 'розбіжності', 'розбіжностей')));
+        else if (s.mid) bd.appendChild(el('span', 'pill y', s.mid + ' ' + plural(s.mid, 'пункт', 'пункти', 'пунктів') + ' перевірити'));
+        else bd.appendChild(el('span', 'pill g', 'без розбіжностей'));
+        if (!c.r || !c.h) bd.appendChild(el('span', 'pill p', 'неповні дані'));
+        r.appendChild(bd);
+        r.addEventListener('click', () => { VIEW = c.k; render(); });
+        box.appendChild(r);
+      });
+      if (!shown.length) box.appendChild(el('div', 'notice', 'Нікого не знайдено за «' + Q + '».'));
+    };
+    inp.addEventListener('input', () => { Q = inp.value; draw(); });
+    draw();
+  }
+  $('back').addEventListener('click', () => { VIEW = null; render(); });
+  $('pdfOne').addEventListener('click', () => {
+    const node = document.querySelector('#list .cc'), c = MODEL.find(x => x.k === VIEW);
+    if (node && c) exportPDF([node], 'Скіл-матриця — ' + c.name + '.pdf', $('pdfOne'));
+  });
+  const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
+
+  // ---------- loading ----------
+  let busy = false;
+  function showErr(title, text, retry){
+    const m = $('msg'); m.textContent = '';
+    const n = el('div', 'notice err'); n.appendChild(el('b', '', title)); n.appendChild(el('div', '', text));
+    if (retry) { const b = el('button', 'btn', 'Спробувати ще раз'); b.type = 'button'; b.style.alignSelf = 'flex-start'; b.addEventListener('click', () => load()); n.appendChild(b); }
+    m.appendChild(n);
+  }
+  async function fetchCsv(url, label){
+    if (!isCsv(url)) throw new Error('Не вказано CSV-посилання для таблиці «' + label + '». Вставте його в CONFIG або через «налаштувати посилання» внизу сторінки.');
+    let res;
+    try { res = await fetch(url + (url.includes('?') ? '&' : '?') + '_=' + Date.now(), { cache: 'no-store' }); }
+    catch (e) { throw new Error('Немає з\'єднання з Google Sheets для таблиці «' + label + '». Перевірте інтернет і спробуйте ще раз.'); }
+    if (!res.ok) throw new Error('Google Sheets відповів ' + res.status + ' для таблиці «' + label + '». Перевірте, що таблицю опубліковано в інтернеті як CSV.');
+    const text = (await res.text()).replace(/^\uFEFF/, '');
+    if (/^\s*</.test(text)) throw new Error('Таблиця «' + label + '» не опублікована як CSV. Файл → Поділитися → Опублікувати в інтернеті → формат CSV.');
+    return parseCSV(text);
+  }
+  // Where the page runs decides how it reads data:
+  //  - published inside Claude: through the viewer's Google Drive connector (sheet links from CONFIG);
+  //  - anywhere else (GitHub Pages, any site): the published CSV links.
+  let mcp, mode = null;
+  const DRIVE_MSG = {
+    needs_reauth: 'Доступ до Google Drive закінчився. Перепідключіть Google Drive у claude.ai: Налаштування → Конектори.',
+    server_not_connected: 'Google Drive не підключено. Додайте його в claude.ai: Налаштування → Конектори, і оновіть сторінку.',
+    selection_required: 'Підключено кілька Google Drive. Оберіть один у запиті над сторінкою.',
+    not_in_manifest: 'Доступ до Google Drive для цієї сторінки вимкнено. Увімкніть його в меню дозволів сторінки.',
+    blocked_by_policy: 'Політика організації не дозволяє цій сторінці читати Google Drive.',
+    tool_error: 'Google Drive відповів помилкою. Перевірте, що у вас є доступ до обох таблиць.'
+  };
+  async function getMcp(){
+    if (mcp !== undefined) return mcp;
+    try { mcp = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('mcp') : null; } catch (e) { mcp = null; }
+    return mcp;
+  }
+  async function readDrive(url, label){
+    const id = fileId(url);
+    if (!id) throw new Error('У CONFIG немає звичайного посилання на таблицю «' + label + '» (docs.google.com/spreadsheets/d/…).');
+    try {
+      const res = await mcp.callTool('Google Drive', 'download_file_content', { fileId: id, exportMimeType: 'text/csv' }, { cache: { staleTime: 60000, gcTime: 300000 } });
+      return parseCSV(decodeDrive(res));
+    } catch (e) {
+      if (e && e.code) throw new Error(DRIVE_MSG[e.code] || ('Google Drive: ' + (e.message || e.code)));
+      throw e;
+    }
+  }
+  async function load(){
+    if (busy) return; busy = true;
+    $('state').textContent = 'оновлення…'; $('state').className = '';
+    try {
+      const m = await getMcp();
+      let pair;
+      if (m) { mode = 'drive'; pair = await Promise.all([readDrive(CONFIG.recSheet, 'Відповіді рекрутерів'), readDrive(CONFIG.hardSheet, 'Самооцінка hard skills')]); }
+      else { mode = 'csv'; pair = await Promise.all([fetchCsv(SRC.rec, 'Відповіді рекрутерів'), fetchCsv(SRC.hard, 'Самооцінка hard skills')]); }
+      const isHard = tb => tb.headers.some(h => /^revit$/i.test(h));
+      const hardT = pair.find(isHard), recT = pair.find(tb => !isHard(tb));
+      if (!hardT || !recT) throw new Error(hardT ? 'Обидва посилання ведуть на таблицю самооцінки. Потрібна ще таблиця відповідей рекрутерів.' : 'Жодне з посилань не веде на таблицю самооцінки (немає колонки Revit). Перевірте посилання.');
+      MODEL = build(readRec(recT), readHard(hardT));
+      loadedAt = Date.now();
+      $('msg').textContent = '';
+      render();
+      $('cfgBtn').hidden = mode === 'drive';
+      $('state').textContent = 'наживо (' + (mode === 'drive' ? 'Google Drive' : 'опубліковані CSV') + ') · оновлено ' + new Date(loadedAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+      $('state').className = 'live';
+    } catch (e) {
+      const setup = mode === 'csv' && (!isCsv(SRC.rec) || !isCsv(SRC.hard));
+      let text = (e && e.message) || 'Невідома помилка.';
+      if (mode === 'csv' && /з'єднання/.test(text)) text += ' Якщо ви бачите це в попередньому перегляді файлу в Claude: там зовнішні запити заблоковані. Відкрийте сайт або опубліковану сторінку в Claude.';
+      showErr(setup ? 'Потрібно підключити таблиці' : 'Не вдалося прочитати таблиці', text, !setup);
+      if (!MODEL.length) { $('list').textContent = ''; $('sub').textContent = setup ? 'Таблиці ще не підключені' : 'Дані не завантажено'; }
+      $('state').textContent = MODEL.length ? 'показано останні завантажені дані' : 'не завантажено';
+      $('state').className = MODEL.length ? 'stale' : '';
+      if (setup) { $('cfg').hidden = false; $('cfgBtn').setAttribute('aria-expanded', 'true'); }
+    } finally { busy = false; }
+  }
+  $('refresh').addEventListener('click', () => load());
+  setInterval(() => { if (document.visibilityState === 'visible') load(); }, CONFIG.refreshMinutes * 60000);
+
+  // ---------- links config ----------
+  $('cfgBtn').addEventListener('click', () => { const c = $('cfg'); c.hidden = !c.hidden; $('cfgBtn').setAttribute('aria-expanded', String(!c.hidden)); });
+  $('cfgSave').addEventListener('click', () => {
+    const r = $('inRec').value.trim(), h = $('inHard').value.trim();
+    if (!isCsv(r) || !isCsv(h)) { toast('Потрібні CSV-посилання з «Опублікувати в інтернеті»: вони закінчуються на output=csv'); return; }
+    SRC = { rec: r, hard: h }; saveSrc(SRC); paintSrc(); $('cfg').hidden = true; load();
+  });
+  $('cfgReset').addEventListener('click', () => { clearSrc(); SRC = loadSrc(); paintSrc(); load(); });
+
+  // ---------- PDF ----------
+  let tt = null;
+  function toast(t){ let n = document.querySelector('.toast'); if (!n) { n = el('div', 'toast'); n.setAttribute('role', 'status'); document.body.appendChild(n); } n.textContent = t; clearTimeout(tt); tt = setTimeout(() => n.remove(), 4000); }
+  async function exportPDF(nodes, filename, btn){
+    if (!window.html2canvas || !window.jspdf) { toast('Не завантажились бібліотеки для PDF. Оновіть сторінку.'); return; }
+    const old = btn.textContent; btn.disabled = true; btn.textContent = 'Готую PDF…';
+    try {
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
+      const PW = 210, PH = 297, M = 8, W = PW - 2 * M; let first = true;
+      for (const node of nodes) {
+        const canvas = await window.html2canvas(node, { scale: 2, backgroundColor: '#161c2b', logging: false, ignoreElements: n => n.hasAttribute && n.hasAttribute('data-noexport') });
+        const pxmm = canvas.width / W, pageH = Math.floor((PH - 2 * M) * pxmm);
+        for (let y = 0; y < canvas.height; y += pageH) {
+          const h = Math.min(pageH, canvas.height - y);
+          const part = document.createElement('canvas'); part.width = canvas.width; part.height = h;
+          part.getContext('2d').drawImage(canvas, 0, y, canvas.width, h, 0, 0, canvas.width, h);
+          if (!first) pdf.addPage(); first = false;
+          pdf.setFillColor(15, 20, 32); pdf.rect(0, 0, PW, PH, 'F');
+          pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, M, W, h / pxmm);
+        }
+      }
+      let dl = null;
+      try { dl = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
+      if (dl) {
+        try { await dl.save({ filename, data: pdf.output('blob') }); toast('PDF збережено'); }
+        catch (e) { toast(e && e.code === 'declined' ? 'Збереження скасовано' : e && e.code === 'rate_limited' ? 'Попереднє збереження ще відкрите. Спробуйте за мить.' : 'Не вдалося зберегти PDF: ' + ((e && e.message) || 'невідома помилка')); }
+      } else { pdf.save(filename); toast('PDF збережено'); }
+    } catch (e) {
+      toast('Не вдалося зробити PDF: ' + ((e && e.message) || 'невідома помилка'));
+    } finally { btn.disabled = false; btn.textContent = old; }
+  }
+  paintSrc();
+  load();
+})();
+</script>
+
+</body>
+</html>
