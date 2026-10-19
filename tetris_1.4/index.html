@@ -474,11 +474,7 @@
       </div>
       <div class="rc"><span>Посада:</span><span id="repPosDD"></span></div>
       <div class="rc"><span>Грейд:</span><span id="repGradeDD"></span></div>
-      <div class="rc"><span>Навичка:</span>
-        <select id="repSkill"><option value="-1">будь-яка</option></select>
-        <span>≥</span>
-        <select id="repSkillMin"><option value="0">будь-який</option><option value="40">40</option><option value="60">60</option><option value="75">75</option></select>
-      </div>
+      <div class="rc"><span>Стадія досвіду:</span><span id="repStageDD"></span></div>
     </div>
     <div class="report-body" id="reportBody"></div>
   </div>
@@ -778,6 +774,18 @@ const OFFICE_HOLIDAYS=[
   {from:"2026-12-24",to:"2027-01-01",label:"Різдвяні канікули",type:"off"}
 ];
 function normName(s){ return String(s||"").replace(/&#13;/g," ").replace(/\([^)]*\)/g," ").toLowerCase().replace(/[.,'’“”"()]/g," ").split(/\s+/).filter(Boolean).sort().join(" "); }
+/* Стабільний, унікальний id людини — прив'язаний до нормалізованого імені, а не до позиції в масиві.
+   Це не дає id «зсунутися», коли ростер перечитується з таблиці (жива підгрузка/оновлення),
+   тож клік по картці завжди відкриває саме ту людину, навіть якщо DOM ще від попереднього рендеру. */
+function assignId(name, used){
+  let base = normName(name) || ("p_"+used.size);
+  let id = base, n = 2;
+  while(used.has(id)){ id = base+"#"+(n++); }
+  used.add(id);
+  return id;
+}
+/* id тепер рядок — екрануємо його для вставки в inline-обробник onclick="openP('...')" */
+function escId(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 /* Формат роботи — резерв зі скіл-матриці (застосовується, якщо жива підтяжка не дала значення) */
 const _RD=["Єльченко Володимир","Нестеренко Вадим","Балакан Олена","Лебединець Ярослав","Нікіфоров Олександр","Вініченко Світлана","Бобошко Володимир","Вощина Олексій","Кулик Павло","Парасюк Вікторія","Яновська Владислава","Даниленко Назар","Денисов Максим","Дутка Остап"];
 const _RO=["Євочка Ірина","Михайлов Ярема","Бухарова Анна-Марія","Іванчак Олег","Виниченко Карина","Аліфанов Данило","Крук Марта","Куцериб Надія","Біла Ярина","Білий Юрій","Базів Андрій","Переновський Олександр","Бевзюк Ксенія","Сидь Соломія","Белюх Марко","Джелеп Наталія","Боднар Вікторія","Брюханов Володимир","Стецюк Валентина","Школьник Максим","Шульга Володимир","Романів Роман","Аврамук Олександр","Василів Андрій","Василишин Богдан","Везденко Юрій","Вибранець Юрій","Кляпетура Юрій","Власова Лілія","Водка Роман","Войташек Антон","Воронецька Анастасія","Гаврилюк Катерина","Гаврих Мар'ян","Фанта Даніел","Федорів Олена","Черноморець Тетяна","Гнатина Анна-Марія","Говако Сергій","Городничий Станіслав","Шведа Соломія","Грабар Мілагрос","Стельмащук Наталія","Шарко Софія","Дієгуц Петро","Даниленко Надія","Дегтярьов Антон","Дем'ян Софія","Андрущак Назарій","Баїк Марта","Добровольська Вікторія","Долінська Наталя","Доля Євгеній","Думіч Богдан","Дунець Уляна","Гочева Вєсна","Кіналь Володимир","Мізюк Олексій","Заза Андрій","Рибак Юлія","Зубрицька Наталія","Зубровська Наталія","Йосипчук Володимир","Старчак Марія","Кабаненко Катерина","Калин Дарина","Канюка Сніжана","Караман Жанна","Тменов Артем","Качмар Павло","Квич Віталій","Кунанець Ігор"];
@@ -975,8 +983,12 @@ function csvCandidates(u){
 }
 
 /* ---------- data load ---------- */
+// анти-кеш: щоразу тягнемо СВІЖИЙ CSV, щоб і автозавантаження при відкритті показувало
+// актуальну завантаженість (інакше браузер/CDN Google віддає стару закешовану копію —
+// звідси «всі вільні», доки не натиснеш «Оновити»)
+function bustUrl(u){ return u + (u.indexOf("?")>=0?"&":"?") + "_=" + Date.now(); }
 function setStatus(txt,cls){ const el=document.getElementById("srcStatus"); el.className="status"+(cls?" "+cls:""); el.innerHTML=txt; }
-function loadSnapshot(){ PEOPLE=SNAPSHOT.people.map((p,i)=>({...p,id:i})); rebuildAfterLoad(); setStatus('Джерело: <b>локальний знімок</b> · '+PEOPLE.length+' осіб'); }
+function loadSnapshot(){ const used=new Set(); PEOPLE=SNAPSHOT.people.map(p=>({...p,id:assignId(p.name,used)})); rebuildAfterLoad(); setStatus('Джерело: <b>локальний знімок</b> · '+PEOPLE.length+' осіб'); }
 async function loadFromUrl(rawUrl,silent){
   const cands=csvCandidates(rawUrl);
   if(!cands.length){ if(!silent) setStatus('Некоректне посилання',"errc"); return; }
@@ -984,12 +996,13 @@ async function loadFromUrl(rawUrl,silent){
   let lastErr=null, fetchBlocked=false;
   for(const url of cands){
     try{
-      const res=await fetch(url,{redirect:"follow"});
+      const res=await fetch(bustUrl(url),{redirect:"follow",cache:"no-store"});
       if(!res.ok) throw new Error("HTTP "+res.status);
       const text=await res.text();
       if(/^\s*<(!doctype|html)/i.test(text.slice(0,200))) throw new Error("таблиця недоступна публічно");
       const people=buildFromRows(parseCSV(text));
-      PEOPLE=people.map((p,i)=>({...p,id:i}));
+      const usedLive=new Set();
+      PEOPLE=people.map(p=>({...p,id:assignId(p.name,usedLive)}));
       lsSet(LS.url,rawUrl);
       rebuildAfterLoad();
       const t=new Date();
@@ -1075,7 +1088,7 @@ async function loadWorkload(){
   const raw=workloadUrl(); if(!raw){ wlState="snapshot"; return; }
   for(const url of workloadCandidates(raw)){
     try{
-      const res=await fetch(url,{redirect:"follow"}); if(!res.ok) throw 0;
+      const res=await fetch(bustUrl(url),{redirect:"follow",cache:"no-store"}); if(!res.ok) throw 0;
       const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text.slice(0,200))) throw 0;
       const map=parseWorkloadCSV(text);  // кине помилку, якщо це не таблиця завантаженості (напр. «Проєкти»)
       applyWeekGrid(buildWeekGrid(csvWeekLabels));   // сітка тижнів — з таблиці (нові колонки зʼявляться самі)
@@ -1101,9 +1114,9 @@ function rebuildAfterLoad(){
     if(p.remote==null){ const nn=normName(p.name); if(nn in REMOTE_MAP) p.remote=REMOTE_MAP[nn]; } });
   // додаємо людей, які є лише в таблиці завантаженості (нові працівники ще без скіл-матриці)
   const known=new Set(PEOPLE.map(p=>normName(p.name)));
-  let nid=PEOPLE.length;
+  const usedIds=new Set(PEOPLE.map(p=>p.id));
   Object.keys(WL_MAP).forEach(k=>{ if(known.has(k)) return; const w=WL_MAP[k];
-    const np={ id:nid++, name:w.name, pos:"", group:w.group||"", grade:"", remote:(k in REMOTE_MAP?REMOTE_MAP[k]:null),
+    const np={ id:assignId(w.name,usedIds), name:w.name, pos:"", group:w.group||"", grade:"", remote:(k in REMOTE_MAP?REMOTE_MAP[k]:null),
       strong:"",weak:"",stages:"",selftasks:"",supporttasks:"",programs:"",soft:"",mgr:"",
       scores:SKILLS.map(()=>null), stageTags:[], load:w, wlOnly:true };
     PEOPLE.push(np); known.add(k);
@@ -1264,7 +1277,7 @@ function render(){
     tb.innerHTML=rows.map(({p,e})=>{
       const inTeam=state.team.has(p.id);
       const homeIcon = p.remote ? ' <span class="remote" title="Дистанційник">🏠</span>' : '';
-      let r=`<tr><td class="name"><span class="nm" onclick="openP(${p.id})">${esc(p.name)}</span>${homeIcon}<br>
+      let r=`<tr><td class="name"><span class="nm" onclick="openP('${escId(p.id)}')">${esc(p.name)}</span>${homeIcon}<br>
         <span class="meta">${gradeBadge(p.grade)} ${esc(p.pos)} · ${esc(p.group)}</span></td>`;
       const st=rangeStatus(p);
       const avTxt = st.type==="free"?"вільний": st.type==="partial"?(Math.round(st.freePct*100)+"%"): st.type==="maybe"?"потенційно": st.type==="busy"?"зайнятий": st.type==="off"?"відп./лік.": st.type==="office"?"офіс":"—";
@@ -1276,7 +1289,7 @@ function render(){
         const rb=RUBRIC[i]?` data-sk="${i}" data-score="${sc==null?'':sc}"`:"";
         r+=`<td${rb}><span class="cell${req?' req':''}" style="background:${colFor(sc)};padding:3px 7px;display:inline-block;min-width:30px">${sc==null?'–':(below?'<span class=miss>'+sc+'</span>':sc)}</span></td>`;
       });
-      r+=`<td><button class="addbtn${inTeam?' in':''}" onclick="toggleTeam(${p.id})" title="${inTeam?'У команді':'Додати'}">${inTeam?'✓':'+'}</button></td></tr>`;
+      r+=`<td><button class="addbtn${inTeam?' in':''}" onclick="toggleTeam('${escId(p.id)}')" title="${inTeam?'У команді':'Додати'}">${inTeam?'✓':'+'}</button></td></tr>`;
       return r;
     }).join("");
   }
@@ -1298,8 +1311,8 @@ function renderTeam(){
   if(!mem.length){ list.className="team-empty"; list.textContent="Додавайте людей кнопкою «+» у таблиці, щоб побачити зведене покриття навичок."; cov.innerHTML=""; btns.style.display="none"; return; }
   btns.style.display="flex"; list.className="";
   list.innerHTML=mem.map(p=>`<div class="member">${gradeBadge(p.grade)}
-    <span class="mn" onclick="openP(${p.id})">${esc(p.name)}</span><span class="mp">${esc(p.pos)}</span>
-    <button class="rm" onclick="toggleTeam(${p.id})" title="Прибрати">✕</button></div>`).join("");
+    <span class="mn" onclick="openP('${escId(p.id)}')">${esc(p.name)}</span><span class="mp">${esc(p.pos)}</span>
+    <button class="rm" onclick="toggleTeam('${escId(p.id)}')" title="Прибрати">✕</button></div>`).join("");
   let c="<div style='font-size:11px;color:var(--mut);margin:10px 0 6px'>Покриття навичок командою (найкращий бал у складі):</div>";
   SKILLS.forEach((s,i)=>{
     const best=Math.max(...mem.map(p=>p.scores[i]??0));
@@ -1433,7 +1446,7 @@ document.querySelectorAll(".side,.main").forEach(el=>el.addEventListener("scroll
 document.getElementById("refreshBtn").onclick=()=>{ refreshAll(false); };
 
 /* ---------- report: who frees up soonest ---------- */
-const repState={horizon:999,pos:new Set(),grades:new Set(),skill:-1,skillMin:0};
+const repState={horizon:999,pos:new Set(),grades:new Set(),stages:new Set()};
 function computeRelease(p){
   if(!p.load) return null;
   const cur=currentWeekIdx();
@@ -1474,7 +1487,7 @@ function hasPotential(p,wi,dur){
 function repPassSkill(p){
   if(repState.pos.size){ if(!posMatchSel(posTokens(p.pos), repState.pos)) return false; }
   if(repState.grades.size){ const b=gradeBase(p.grade); if(!(repState.grades.has(canonGrade(p.grade)) || repState.grades.has(b+" · усі"))) return false; }
-  if(repState.skill>=0){ const v=p.scores[repState.skill]; if(v==null || v<repState.skillMin) return false; }
+  if(repState.stages.size){ const tg=p.stageTags||[]; if(!tg.some(t=>repState.stages.has(t))) return false; }
   return true;
 }
 function buildReport(){
@@ -1485,7 +1498,7 @@ function buildReport(){
   const busy=rows.filter(x=>!x.rel || x.rel.wi>cutoff);
   const noData=PEOPLE.filter(p=>!p.load && repPassSkill(p)).length;
   const horizonTxt = repState.horizon>=999 ? `весь період (${WL_WEEKS[cur]} → ${WL_WEEKS[WL_WEEKS.length-1]})` : `${WL_WEEKS[cur]} → ${WL_WEEKS[cutoff]}`;
-  const flt = (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.skill>=0?` · ${SHORT[repState.skill]} ≥ ${repState.skillMin}`:"");
+  const flt = (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.stages.size?` · стадія ${[...repState.stages].join("/")}`:"");
   document.getElementById("reportSub").innerHTML=
     `Горизонт: <b>${horizonTxt}</b>${flt} · вивільняються: <b>${releasing.length}</b> · не вивільняються: <b>${busy.length}</b> · без даних: ${noData}`;
   const body=document.getElementById("reportBody");
@@ -1503,7 +1516,7 @@ function buildReport(){
     const freePct=Math.round(rel.free*100);
     const home = p.remote ? ' 🏠' : '';
     const durTxt = rel.dur>=(WL_WEEKS.length-rel.wi) ? "до кінця періоду" : `~${rel.dur} ${repWeeksWord(rel.dur)}`;
-    html+=`<div class="rep-row" onclick="openP(${p.id})">
+    html+=`<div class="rep-row" onclick="openP('${escId(p.id)}')">
       <div class="rep-when"><b>${rel.now?"зараз":WL_WEEKS[rel.wi].split("–")[0]}</b><span>вікно: ${durTxt}</span></div>
       <div class="rep-who"><span class="nm">${esc(p.name)}${home}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
       <div class="rep-free">вивільняється до<br><b style="color:${availColor(rel.free>=0.999?'free':'partial')}">${freePct}%</b> вільного часу${hasPotential(p,rel.wi,rel.dur)?`<div class="pot-note">⚠ Потенційно завантажений</div>`:""}</div>
@@ -1514,7 +1527,7 @@ function buildReport(){
     busy.sort((a,b)=>{ const aw=a.rel?a.rel.wi:999, bw=b.rel?b.rel.wi:999; return aw-bw || a.p.name.localeCompare(b.p.name,"uk"); }).forEach(({p,rel})=>{
       const nowL=currentLoadTxt(p); const home=p.remote?' 🏠':'';
       const later = rel ? "з "+WL_WEEKS[rel.wi].split("–")[0]+" ("+Math.round(rel.free*100)+"%)" : "не вивільняється";
-      html+=`<div class="rep-row" onclick="openP(${p.id})">
+      html+=`<div class="rep-row" onclick="openP('${escId(p.id)}')">
         <div class="rep-when"><b>${rel?WL_WEEKS[rel.wi].split("–")[0]:"—"}</b><span>${rel?"поза горизонтом":"весь період"}</span></div>
         <div class="rep-who"><span class="nm">${esc(p.name)}${home}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
         <div class="rep-free">${esc(later)}${rel&&hasPotential(p,rel.wi,rel.dur)?`<div class="pot-note">⚠ Потенційно завантажений</div>`:""}</div>
@@ -1551,9 +1564,7 @@ function posFacetValues(){ const set=new Set(); PEOPLE.forEach(p=>posTokens(p.po
 function initReportControls(){
   makeMiniDD(document.getElementById("repPosDD"),"Посада",posFacetValues,repState.pos,true,buildReport);
   makeMiniDD(document.getElementById("repGradeDD"),"Грейд",gradeFacetValues,repState.grades,false,buildReport);
-  const ss=document.getElementById("repSkill"); ss.innerHTML='<option value="-1">будь-яка</option>'+SHORT.map((s,i)=>`<option value="${i}">${esc(s)}</option>`).join("");
-  ss.onchange=e=>{ repState.skill=+e.target.value; buildReport(); };
-  document.getElementById("repSkillMin").onchange=e=>{ repState.skillMin=+e.target.value; buildReport(); };
+  makeMiniDD(document.getElementById("repStageDD"),"Стадія",stageFacetValues,repState.stages,false,buildReport);
   document.getElementById("repHorizon").onchange=e=>{ repState.horizon=+e.target.value; buildReport(); };
 }
 let repInit=false;
@@ -1636,7 +1647,7 @@ function buildProjects(){
     mem.forEach(({m,info})=>{
       const p=m.p; const home=p.remote?' 🏠':'';
       const span = (info.f<99) ? fmtDate(WL_STARTS[info.f])+" – "+fmtDate(WL_ENDS[info.l]) : "—";
-      rows+=`<div class="pj-mem" onclick="openP(${p.id})">
+      rows+=`<div class="pj-mem" onclick="openP('${escId(p.id)}')">
         <div class="pj-mem-name"><b>${esc(p.name)}${home}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos||"—")}${p.group?" · "+esc(p.group):""}</span></div>
         <div class="pj-mem-slot">${span}</div>
         <div class="pj-mem-load">${info.anyPot&&info.loadTxt==="потенційно"?`<span style="color:${availColor('maybe')}">потенційно</span>`:esc(info.loadTxt)}${info.anyPot&&info.loadTxt!=="потенційно"?` <span style="color:${availColor('maybe')}">+?</span>`:""}</div>
@@ -1864,7 +1875,7 @@ function csBrowserHTML(sl,idx){
     <div class="cs-brow-h">${esc(csSlotLabel(sl))} ${headCnt}</div>
     <div class="cs-brow-body">
       <button class="cs-nav" onclick="csBrowse(${idx},-1)" title="Попередній кандидат">◀ назад</button>
-      <div class="cs-cand" onclick="openP(${p.id})">
+      <div class="cs-cand" onclick="openP('${escId(p.id)}')">
         <div><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
         <div class="meta">${availTxt} · кандидат ${bi+1} з ${pool.length}</div>
       </div>
@@ -1961,7 +1972,7 @@ function renderTeam(){
         : `<span style="color:${availColor('busy')}">не встигає</span>${rTxt}`;
       html+=`<div class="cs-tm">
         <div class="cs-tm-role">${esc(shortRole(sl))}</div>
-        <div class="cs-tm-name" onclick="openP(${p.id})"><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+        <div class="cs-tm-name" onclick="openP('${escId(p.id)}')"><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
         <div class="cs-tm-av">${avTxt}</div>
         <button class="cs-rm" onclick="csRemove(${pos})" title="Прибрати з команди">✕</button>
       </div>`;
