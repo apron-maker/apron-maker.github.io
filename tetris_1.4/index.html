@@ -929,11 +929,22 @@ function findCol(headers,tests){
     if(typeof t==="string"){ if(h===t.toLowerCase()) return i; } else { if(t.test(h)) return i; } } }
   return -1;
 }
+const NAME_TESTS=["ім'я",/ім['’]?я/,/прізвищ/,/^\s*піб\s*$/,/співробітник/,/працівник/];
 function buildFromRows(rows){
   if(!rows.length) throw new Error("порожня таблиця");
-  const H=rows[0].map(x=>String(x||""));
+  // знаходимо рядок ЗАГОЛОВКІВ самостійно — у перших рядках шукаємо той, де є і колонка імен,
+  // і хоча б одна з «Посада/Група/Грейди». Так зайвий верхній рядок (службовий підпис,
+  // об'єднана назва на кшталт «Працівники компанії» тощо) більше не ламає й не підміняє заголовки.
+  let hIdx=0;
+  for(let i=0;i<Math.min(rows.length,15);i++){
+    const hr=(rows[i]||[]).map(x=>String(x||""));
+    const hasName=findCol(hr,NAME_TESTS)>=0;
+    const hasOther=findCol(hr,[/посад/])>=0 || findCol(hr,[/груп/])>=0 || findCol(hr,[/грейд/])>=0;
+    if(hasName&&hasOther){ hIdx=i; break; }
+  }
+  const H=rows[hIdx].map(x=>String(x||""));
   const idx={
-    name:findCol(H,["ім'я",/ім['’]?я/,/прізвищ/]),
+    name:findCol(H,NAME_TESTS),
     pos:findCol(H,["посада",/посад/]),
     group:findCol(H,["група",/груп/]),
     grade:findCol(H,["грейди","грейд",/грейд/]),
@@ -954,7 +965,7 @@ function buildFromRows(rows){
   const num=v=>{ if(v==null)return null; const n=parseFloat(String(v).replace(",",".").replace(/[^0-9.\-]/g,"")); return isFinite(n)?Math.round(n):null; };
   const get=(r,i)=> i>=0&&i<r.length?String(r[i]).trim():"";
   const out=[];
-  for(let r=1;r<rows.length;r++){ const row=rows[r]; if(!row) continue;
+  for(let r=hIdx+1;r<rows.length;r++){ const row=rows[r]; if(!row) continue;
     const name=idx.name>=0?String(row[idx.name]||"").trim():"";
     if(!name) continue;
     const scores=skIdx.map(i=> i>=0? num(row[i]) : null);
