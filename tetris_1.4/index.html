@@ -1607,8 +1607,10 @@ function buildAlerts(){
     items.push({p,rel,weeksUntil,openEnded,lastFree,full:rel.free>=0.999,
       pot:hasPotential(p,rel.wi,rel.dur), tier});
   });
-  // терміново → далеко; у межах тижня — спершу «до кінця періоду», потім більше вільного часу
-  items.sort((a,b)=> a.rel.wi-b.rel.wi || (b.openEnded-a.openEnded) || (b.rel.free-a.rel.free) || a.p.name.localeCompare(b.p.name,"uk"));
+  // терміново → далеко; у межах рівня — СПЕРШУ повністю вільні («знайти завдання»), потім частково («дозавантажити»);
+  // далі — раніший тиждень, довше вікно, більше вільного часу
+  const TR={now:0,soon:1,plan:2};
+  items.sort((a,b)=> TR[a.tier]-TR[b.tier] || (b.full-a.full) || a.rel.wi-b.rel.wi || (b.openEnded-a.openEnded) || (b.rel.free-a.rel.free) || a.p.name.localeCompare(b.p.name,"uk"));
   return {items,cur,cutoff};
 }
 function alertSentence(it){
