@@ -271,6 +271,39 @@
   .rep-free b{font-size:15px;font-variant-numeric:tabular-nums}
   .rep-mini{display:inline-block;min-width:52px;text-align:center;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700;color:#08111f}
   .rep-empty{color:var(--mut);padding:16px 8px;font-size:13px}
+  /* --- попередження (alerts) --- */
+  .al-grp{font-size:11.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;padding:14px 8px 6px}
+  .al-grp:first-child{padding-top:4px}
+  .al{display:grid;grid-template-columns:30px 1fr auto;gap:11px;align-items:center;padding:10px 12px;margin:5px 0;border:1px solid var(--line);border-left:4px solid var(--mut);border-radius:9px;background:var(--panel2);cursor:pointer;transition:.12s}
+  .al:hover{border-color:var(--acc);background:var(--panel)}
+  .al.u-now{border-left-color:#ec5a72;background:#2a1820}
+  .al.u-soon{border-left-color:#f5b544;background:#271f14}
+  .al.u-plan{border-left-color:#3ecf8e}
+  .al-ic{font-size:18px;text-align:center}
+  .al-txt{font-size:12.8px;line-height:1.45;color:var(--txt)}
+  .al-txt .nm{font-weight:700}
+  .al-txt .when{font-weight:700}
+  .al-txt .sub{display:block;color:var(--mut);font-size:11.5px;margin-top:2px}
+  .al-cta{font-size:11px;font-weight:700;white-space:nowrap;padding:4px 9px;border-radius:999px;border:1px solid;align-self:center}
+  .al-cta.find{color:#ec5a72;border-color:#7a2e3a;background:#2a1820}
+  .al-cta.part{color:#f5b544;border-color:#5c4a22;background:#271f14}
+  .al-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:middle}
+  .al-badge.pot{color:#c9c2f2;background:#2c2a4d;border:1px solid #4a4680}
+  /* візуалізація довжини вільного вікна */
+  .al-win{display:flex;align-items:center;gap:9px;margin-top:7px;flex-wrap:wrap}
+  .al-spark{display:inline-flex;gap:2px;vertical-align:middle}
+  .al-spark .sc{width:8px;height:15px;border-radius:2px;background:#232d45;flex:0 0 auto}
+  .al-spark .sc.free{background:#3ecf8e}
+  .al-spark .sc.partial{background:#f5b544}
+  .al-spark .sc.busy{background:#ec5a72}
+  .al-spark .sc.maybe{background:#8f7ee8}
+  .al-spark .sc.off{background:#3f4860}
+  .al-spark .sc.now{outline:2px solid #fff;outline-offset:-1px}
+  .al-wlabel{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid;white-space:nowrap}
+  .al-wlabel.full{color:#3ecf8e;border-color:#265c45;background:#12271d}
+  .al-wlabel.short{color:#ffb4c0;border-color:#7a2e3a;background:#2a1820}
+  .al-wlabel.mid{color:#8ab4ff;border-color:#2c4a7a;background:#14203a}
+  @media(max-width:720px){ .al{grid-template-columns:24px 1fr;gap:8px} .al-cta{grid-column:2;justify-self:start;margin-top:4px} }
   .rep-section-busy{margin-top:18px;border-top:1px dashed var(--line);padding-top:6px}
   @media(max-width:720px){ .rep-row{grid-template-columns:1fr;gap:3px} .rep-when{order:-1} }
   /* constructor */
@@ -464,6 +497,12 @@
       <button class="mini" id="reportClose">✕ Закрити</button>
     </div>
     <div class="report-controls">
+      <div class="rc"><span>Режим:</span>
+        <div class="chips" id="repView">
+          <span class="chip on" data-v="alerts">🔔 Попередження</span>
+          <span class="chip" data-v="list">📋 Список</span>
+        </div>
+      </div>
       <div class="rc"><span>Горизонт:</span>
         <select id="repHorizon">
           <option value="4">наступні 4 тижні</option>
@@ -1457,7 +1496,7 @@ document.querySelectorAll(".side,.main").forEach(el=>el.addEventListener("scroll
 document.getElementById("refreshBtn").onclick=()=>{ refreshAll(false); };
 
 /* ---------- report: who frees up soonest ---------- */
-const repState={horizon:999,pos:new Set(),grades:new Set(),stages:new Set()};
+const repState={view:"alerts",horizon:999,pos:new Set(),grades:new Set(),stages:new Set()};
 function computeRelease(p){
   if(!p.load) return null;
   const cur=currentWeekIdx();
@@ -1502,6 +1541,8 @@ function repPassSkill(p){
   return true;
 }
 function buildReport(){
+  if(repState.view==="alerts"){ renderAlerts(); return; }
+  document.getElementById("reportTitle").innerHTML="📋 Звіт — хто найближче вивільняється";
   const cur=currentWeekIdx();
   const cutoff = repState.horizon>=999 ? WL_WEEKS.length-1 : Math.min(WL_WEEKS.length-1, cur+repState.horizon-1);
   let rows=PEOPLE.map(p=>({p,rel:computeRelease(p)})).filter(x=>x.p.load && repPassSkill(x.p));
@@ -1548,6 +1589,95 @@ function buildReport(){
   }
   body.innerHTML=html;
 }
+/* ---------- ПОПЕРЕДЖЕННЯ: хто незабаром звільняється (сортування: терміново → далеко) ---------- */
+function buildAlerts(){
+  const cur=currentWeekIdx();
+  const cutoff = repState.horizon>=999 ? WL_WEEKS.length-1 : Math.min(WL_WEEKS.length-1, cur+repState.horizon-1);
+  const items=[];
+  PEOPLE.forEach(p=>{
+    if(!p.load || !repPassSkill(p)) return;
+    const rel=computeRelease(p);
+    if(!rel || rel.wi>cutoff) return;                 // зайнятий увесь горизонт або звільняється поза горизонтом
+    // чи тягнеться вільне вікно до кінця періоду + остання вільна неділя вікна
+    let openEnded=true, lastFree=rel.wi;
+    for(let w=rel.wi;w<WL_WEEKS.length;w++){ if(weekFullyOff(w)) continue; const s=weekStatus(p,w);
+      if(s.type==="free"||s.type==="partial"||s.type==="maybe"){ lastFree=w; } else { openEnded=false; break; } }
+    const weeksUntil=rel.wi-cur;
+    const tier = weeksUntil<=1 ? "now" : (weeksUntil<=3 ? "soon" : "plan");
+    items.push({p,rel,weeksUntil,openEnded,lastFree,full:rel.free>=0.999,
+      pot:hasPotential(p,rel.wi,rel.dur), tier});
+  });
+  // терміново → далеко; у межах тижня — спершу «до кінця періоду», потім більше вільного часу
+  items.sort((a,b)=> a.rel.wi-b.rel.wi || (b.openEnded-a.openEnded) || (b.rel.free-a.rel.free) || a.p.name.localeCompare(b.p.name,"uk"));
+  return {items,cur,cutoff};
+}
+function alertSentence(it){
+  const {p,rel,weeksUntil,openEnded,lastFree,full,pot}=it;
+  const freePct=Math.round(rel.free*100);
+  const nm=`<span class="nm">${esc(p.name)}${p.remote?' 🏠':''}</span>`;
+  const potB = pot?` <span class="al-badge pot">є «?»</span>`:"";
+  const dstart=fmtDate(WL_STARTS[rel.wi]);
+  const stateFull = full ? "повністю без завантаження" : `вільний час ~${freePct}%`;
+  let main;
+  if(openEnded){
+    main = weeksUntil<=0
+      ? `${nm} — ${full?"уже повністю без завантаження":`уже вільний час ~${freePct}%`} (з цього тижня і далі до кінця періоду)${potB}`
+      : `${nm} — з <span class="when">${dstart}</span> ${stateFull} і далі до кінця періоду${potB}`;
+  } else {
+    const dend=fmtDate(WL_ENDS[lastFree]);
+    const durTxt=`<b>${rel.dur} ${repWeeksWord(rel.dur)}</b>`;
+    main = weeksUntil<=0
+      ? `${nm} — уже цього тижня є вільне вікно: ${full?"повне":`~${freePct}%`}, на ${durTxt} (${dstart}–${dend})${potB}`
+      : `${nm} — звільняється <span class="when">через ${weeksUntil} ${repWeeksWord(weeksUntil)}</span> (з ${dstart}): ${full?"повне вільне вікно":`~${freePct}% вільного часу`}, на ${durTxt} до ${dend}${potB}`;
+  }
+  const sub=`<span class="sub">${esc(p.pos||"—")}${p.group?" · "+esc(p.group):""}${p.grade?" · "+esc(p.grade):""}</span>`;
+  return main+sub;
+}
+// міні-смужка тижнів від поточного до кінця періоду — щоб ОКОМ бачити довжину вільного вікна
+function alertSpark(p,cur){
+  let cells="";
+  for(let w=cur;w<WL_WEEKS.length;w++){
+    let cls = weekFullyOff(w) ? "off" : weekStatus(p,w).type;   // free/partial/busy/maybe/off
+    cells+=`<i class="sc ${cls}${w===cur?" now":""}" title="${esc(WL_WEEKS[w])}"></i>`;
+  }
+  return `<span class="al-spark" title="тижні від сьогодні до кінця періоду">${cells}</span>`;
+}
+// підпис довжини вільного вікна + клас кольору (короткий / середній / повний)
+function alertWindow(it){
+  if(it.openEnded) return {cls:"full", txt:"🟩 повне вікно — до кінця періоду"};
+  if(it.rel.dur<=1) return {cls:"short", txt:"▪ коротке вікно — лише 1 тиждень"};
+  return {cls:"mid", txt:`▬ вікно — ${it.rel.dur} ${repWeeksWord(it.rel.dur)}`};
+}
+function renderAlerts(){
+  document.getElementById("reportTitle").innerHTML="🔔 Попередження — хто незабаром звільняється";
+  const {items,cur,cutoff}=buildAlerts();
+  const cnt={now:0,soon:0,plan:0}; items.forEach(it=>cnt[it.tier]++);
+  const horizonTxt = repState.horizon>=999 ? `весь період` : `${WL_WEEKS[cur]} → ${WL_WEEKS[cutoff]}`;
+  const flt = (repState.pos.size?` · посада ${[...repState.pos].join("/")}`:"") + (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.stages.size?` · стадія ${[...repState.stages].join("/")}`:"");
+  document.getElementById("reportSub").innerHTML =
+    `Горизонт: <b>${horizonTxt}</b>${flt} · усього попереджень: <b>${items.length}</b> · 🔴 ${cnt.now} · 🟠 ${cnt.soon} · 🟢 ${cnt.plan}`;
+  const body=document.getElementById("reportBody");
+  if(!items.length){ body.innerHTML='<div class="rep-empty">Немає попереджень: за обраним горизонтом і фільтрами ніхто не вивільняється (усі завантажені). Розширте горизонт або послабте фільтри.</div>'; return; }
+  const GRP={now:"🔴 Терміново — цей / наступний тиждень", soon:"🟠 Скоро — за 2–3 тижні", plan:"🟢 Планово — пізніше"};
+  const IC={now:"🔴",soon:"🟠",plan:"🟢"};
+  const UC={now:"u-now",soon:"u-soon",plan:"u-plan"};
+  let html="", lastTier="";
+  items.forEach(it=>{
+    if(it.tier!==lastTier){ lastTier=it.tier; html+=`<div class="al-grp">${GRP[it.tier]}</div>`; }
+    const cta = it.full
+      ? `<span class="al-cta find">🔎 знайти завдання</span>`
+      : `<span class="al-cta part">дозавантажити</span>`;
+    const win=alertWindow(it);
+    html+=`<div class="al ${UC[it.tier]}" onclick="openP('${escId(it.p.id)}')">
+      <div class="al-ic">${IC[it.tier]}</div>
+      <div class="al-txt">${alertSentence(it)}
+        <div class="al-win">${alertSpark(it.p,cur)}<span class="al-wlabel ${win.cls}">${win.txt}</span></div>
+      </div>
+      ${cta}
+    </div>`;
+  });
+  body.innerHTML=html;
+}
 /* reusable standalone multi-select dropdown (reuses .dd styles) */
 function makeMiniDD(mount,label,getValues,selSet,searchable,onChange){
   mount.innerHTML="";
@@ -1577,6 +1707,7 @@ function initReportControls(){
   makeMiniDD(document.getElementById("repGradeDD"),"Грейд",gradeFacetValues,repState.grades,false,buildReport);
   makeMiniDD(document.getElementById("repStageDD"),"Стадія",stageFacetValues,repState.stages,false,buildReport);
   document.getElementById("repHorizon").onchange=e=>{ repState.horizon=+e.target.value; buildReport(); };
+  document.querySelectorAll("#repView .chip").forEach(c=>c.onclick=()=>{ document.querySelectorAll("#repView .chip").forEach(x=>x.classList.remove("on")); c.classList.add("on"); repState.view=c.dataset.v; buildReport(); });
 }
 let repInit=false;
 function openReport(){ if(!repInit){ initReportControls(); repInit=true; } buildReport(); document.getElementById("reportOv").classList.add("on"); }
