@@ -856,11 +856,20 @@ function downloadHtml(html, filename) {
     document.body.removeChild(a);
   }, 1000);
 }
-const PRINT_CSS = "body{font-family:Arial,sans-serif;margin:20px;color:#1A1917;font-size:11px;}h1{font-size:16px;margin-bottom:4px;}.sub{color:#7A7870;font-size:10px;margin-bottom:16px;}table{width:100%;border-collapse:collapse;margin-top:8px;}th{background:#EBF2FB;color:#1B5FA6;font-size:10px;text-align:left;padding:6px 8px;border-bottom:2px solid #D2E4F8;}td{padding:6px 8px;border-bottom:1px solid #E8E6DF;font-size:10px;vertical-align:top;}tr:nth-child(even){background:#F7F6F2;}.section{margin-top:14px;padding:5px 10px;border-left:3px solid #1B5FA6;background:#EBF2FB;font-weight:700;font-size:11px;}.blocker{background:#FFF0F0 !important;}.pagebreak{page-break-before:always;break-before:page;height:0;}.intro{background:#F3F1FB;border-left:3px solid #5046A6;padding:10px 14px;font-size:10.5px;line-height:1.55;margin:8px 0 12px;border-radius:4px;}.intro ul{margin:6px 0 0 0;padding-left:16px;}.intro li{margin-bottom:4px;}.cause{color:#B42318;}@media print{@page{margin:15mm;}body{margin:0;}.pagebreak{page-break-before:always;}}";
+const PRINT_CSS = "body{font-family:Arial,sans-serif;margin:20px;color:#1A1917;font-size:11px;}h1{font-size:16px;margin-bottom:4px;}.sub{color:#7A7870;font-size:10px;margin-bottom:16px;}table{width:100%;border-collapse:collapse;margin-top:8px;}th{background:#EBF2FB;color:#1B5FA6;font-size:10px;text-align:left;padding:6px 8px;border-bottom:2px solid #D2E4F8;}td{padding:6px 8px;border-bottom:1px solid #E8E6DF;font-size:10px;vertical-align:top;}tr:nth-child(even){background:#F7F6F2;}.section{margin-top:14px;padding:5px 10px;border-left:3px solid #1B5FA6;background:#EBF2FB;font-weight:700;font-size:11px;}.blocker{background:#FFF0F0 !important;}.noterow td{background:#FFF8E1 !important;color:#5A4A00;font-size:9.5px;line-height:1.5;padding:4px 10px 8px;border-bottom:1px solid #E8E6DF;}.noterow .nl{font-weight:700;color:#8B5000;}.pagebreak{page-break-before:always;break-before:page;height:0;}.intro{background:#F3F1FB;border-left:3px solid #5046A6;padding:10px 14px;font-size:10.5px;line-height:1.55;margin:8px 0 12px;border-radius:4px;}.intro ul{margin:6px 0 0 0;padding-left:16px;}.intro li{margin-bottom:4px;}.cause{color:#B42318;}@media print{@page{margin:15mm;}body{margin:0;}.pagebreak{page-break-before:always;}}";
 const PAUSE_RE = /Пауза|Зупинка|Не активн/;
 const NEW_RE = /Комерційн|Договір|Проавансован|Не почато/;
 function repEsc(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function fmtNote(s) {
+  var t = String(s == null ? "" : s).trim();
+  if (!t || t === "—") return "";
+  t = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  var lines = t.split(/\r?\n/).map(function (ln) {
+    return ln.replace(/^(\s*)(\d{1,2}\.\d{1,2}(?:\.\d{2,4})?)/, "$1<span class='nl'>$2</span>");
+  });
+  return lines.join("<br>");
 }
 function pausePageHtml(rows, today, withMoney) {
   if (!rows.length) return "";
@@ -2858,6 +2867,8 @@ function App() {
         let row2 = "<tr" + (hasB ? " class='blocker'" : "") + "><td>" + (i + 1) + "</td><td>" + repEsc(r.project) + "</td><td>" + repEsc(r.pm || "—") + "</td><td>" + repEsc(r.group || "—") + "</td><td>" + repEsc(r.status) + "</td><td>" + (fmtDate(r.deadline_date) || "—") + "</td>";
         if (withMoney) row2 += "<td>" + uah(r.diff) + "</td><td>" + Math.round(r.readiness_pct) + "%</td><td>" + Math.round(r.payment_pct) + "%</td>";else row2 += "<td>" + Math.round(r.readiness_pct) + "%</td>";
         row2 += "<td><b>" + r.wsjf.toFixed(1) + "</b></td><td>" + repEsc(r.blocker || "—") + "</td></tr>";
+        var _nh = fmtNote(r.notes);
+        if (_nh) row2 += "<tr class='noterow'><td colspan='" + (withMoney ? 11 : 9) + "'>📝 " + _nh + "</td></tr>";
         body += row2;
       });
       body += "</tbody></table>";
