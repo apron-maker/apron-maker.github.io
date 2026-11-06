@@ -141,6 +141,7 @@
   td.name .meta{color:var(--mut);font-size:11px}
   .gbadge{display:inline-block;min-width:20px;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:700;color:#0a0f1a}
   .remote{font-size:12px;cursor:help;vertical-align:baseline}
+  .loc-tag{display:inline-block;font-size:10px;font-weight:600;color:#8ab4ff;background:#14203a;border:1px solid #2c4a7a;border-radius:999px;padding:0 6px;margin-left:5px;vertical-align:middle;white-space:nowrap}
   .gsub{font-size:10px;color:var(--mut);margin-left:3px;vertical-align:baseline}
   .cell{border-radius:6px;font-variant-numeric:tabular-nums;font-weight:600;color:#0b1120}
   .cell.req{box-shadow:inset 0 0 0 2px var(--acc)}
@@ -256,6 +257,9 @@
   .pj-mem:hover{background:var(--panel2)}
   .pj-mem-slot{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
   .pj-mem-load{font-size:12.5px;font-weight:600;text-align:right}
+  .pj-mem-rz{margin-top:4px;display:flex;flex-wrap:wrap;gap:6px}
+  .pj-role{font-size:11px;font-weight:600;color:#ffd27a;background:#2a2113;border:1px solid #5c4a22;border-radius:999px;padding:1px 8px}
+  .pj-zone{font-size:11px;font-weight:600;color:#9fe0c0;background:#132a21;border:1px solid #265c45;border-radius:999px;padding:1px 8px}
   @media(max-width:640px){ .pj-mem{grid-template-columns:1fr auto} .pj-mem-slot{display:none} }
   .report-body{overflow-y:auto;padding:8px 12px 18px}
   .rep-daygrp{margin-top:10px}
@@ -514,6 +518,11 @@
       <div class="rc"><span>Посада:</span><span id="repPosDD"></span></div>
       <div class="rc"><span>Грейд:</span><span id="repGradeDD"></span></div>
       <div class="rc"><span>Стадія досвіду:</span><span id="repStageDD"></span></div>
+      <div class="rc"><span>Формат / офіс:</span><span id="repLocDD"></span></div>
+      <div class="rc"><span>Завантаженість:</span>
+        <input type="range" id="repLoadMax" min="10" max="100" step="5" value="100" style="width:120px;vertical-align:middle">
+        <span id="repLoadMaxLbl" style="min-width:66px;display:inline-block;color:var(--txt);font-weight:600">усі</span>
+      </div>
     </div>
     <div class="report-body" id="reportBody"></div>
   </div>
@@ -829,6 +838,12 @@ function escId(s){ return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 const _RD=["Єльченко Володимир","Нестеренко Вадим","Балакан Олена","Лебединець Ярослав","Нікіфоров Олександр","Вініченко Світлана","Бобошко Володимир","Вощина Олексій","Кулик Павло","Парасюк Вікторія","Яновська Владислава","Даниленко Назар","Денисов Максим","Дутка Остап"];
 const _RO=["Євочка Ірина","Михайлов Ярема","Бухарова Анна-Марія","Іванчак Олег","Виниченко Карина","Аліфанов Данило","Крук Марта","Куцериб Надія","Біла Ярина","Білий Юрій","Базів Андрій","Переновський Олександр","Бевзюк Ксенія","Сидь Соломія","Белюх Марко","Джелеп Наталія","Боднар Вікторія","Брюханов Володимир","Стецюк Валентина","Школьник Максим","Шульга Володимир","Романів Роман","Аврамук Олександр","Василів Андрій","Василишин Богдан","Везденко Юрій","Вибранець Юрій","Кляпетура Юрій","Власова Лілія","Водка Роман","Войташек Антон","Воронецька Анастасія","Гаврилюк Катерина","Гаврих Мар'ян","Фанта Даніел","Федорів Олена","Черноморець Тетяна","Гнатина Анна-Марія","Говако Сергій","Городничий Станіслав","Шведа Соломія","Грабар Мілагрос","Стельмащук Наталія","Шарко Софія","Дієгуц Петро","Даниленко Надія","Дегтярьов Антон","Дем'ян Софія","Андрущак Назарій","Баїк Марта","Добровольська Вікторія","Долінська Наталя","Доля Євгеній","Думіч Богдан","Дунець Уляна","Гочева Вєсна","Кіналь Володимир","Мізюк Олексій","Заза Андрій","Рибак Юлія","Зубрицька Наталія","Зубровська Наталія","Йосипчук Володимир","Старчак Марія","Кабаненко Катерина","Калин Дарина","Канюка Сніжана","Караман Жанна","Тменов Артем","Качмар Павло","Квич Віталій","Кунанець Ігор"];
 const REMOTE_MAP={}; _RD.forEach(n=>REMOTE_MAP[normName(n)]=true); _RO.forEach(n=>REMOTE_MAP[normName(n)]=false);
+// допустимі значення колонки «формат роботи»: дистанційник / офісний / місто офісу
+const LOC_VAL=/^\s*(дистанційник|офісний|львів|дніпро|київ|харків|одеса|одеська|вінниця|тернопіль|івано[- ]?франківськ|ужгород|луцьк|рівне|полтава|чернівці|чернігів|суми|черкаси|житомир|хмельницький|миколаїв|запоріжжя|кривий ріг|варшава|краків|вроцлав)\s*$/i;
+// гарний підпис формату/міста для фільтра й карток
+function locLabel(loc){ if(!loc) return ""; if(/дистанц/i.test(loc)) return "🏠 Дистанційний"; if(/^офісн/i.test(loc)) return "🏢 Офіс (без міста)"; return "📍 "+loc; }
+// компактний бейдж міста офісу (лише для конкретного міста; дистанційні мають 🏠, «Офісний» без міста — без бейджа)
+function cityTag(p){ const l=p&&p.loc; if(!l||/дистанц/i.test(l)||/^офісн/i.test(l)) return ""; return ` <span class="loc-tag" title="Офіс: ${esc(l)}">📍${esc(l)}</span>`; }
 function parseISO(s){ return new Date(s+"T00:00:00"); }
 function toISO(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
@@ -837,7 +852,7 @@ const OFFICE_OFF=(function(){ const s=new Set(); OFFICE_HOLIDAYS.filter(h=>h.typ
 function weekIndexForDate(iso){ for(let i=0;i<WL_STARTS.length;i++){ if(iso>=WL_STARTS[i]&&iso<=WL_ENDS[i]) return i; } return -1; }
 
 let PEOPLE=[];
-const state={q:"",pos:new Set(),grade:new Set(),group:new Set(),stages:new Set(),avail:new Set(),remote:new Set(),req:SKILLS.map(()=>0),sort:"fit",team:new Set(),teamNames:new Set(),scope:"all",from:WL_STARTS[0],to:WL_ENDS[0]};
+const state={q:"",pos:new Set(),grade:new Set(),group:new Set(),stages:new Set(),avail:new Set(),remote:new Set(),loc:new Set(),req:SKILLS.map(()=>0),sort:"fit",team:new Set(),teamNames:new Set(),scope:"all",from:WL_STARTS[0],to:WL_ENDS[0]};
 function hasScore(p){ return p.scores.some(v=>typeof v==="number"); }
 
 const AVAIL_LABEL={free:"Вільний",partial:"Частково вільний",busy:"Зайнятий",maybe:"Потенційно завантажений",off:"Відпустка / лікарняний / відгул",office:"Офіс не працює",none:"Немає даних"};
@@ -997,8 +1012,9 @@ function buildFromRows(rows){
     mgr:findCol(H,["коментар керівника",/коментар/])
   };
   const skIdx=SKILLS.map(s=>findCol(H,[s.toLowerCase()]));
-  // remote/office column (often blank header) — detect by EXACT cell values ("Дистанційник"/"Офісний")
-  const exactRO=v=>/^\s*(дистанційник|офісний)\s*$/i.test(String(v==null?"":v));
+  // колонка формату роботи (часто з порожнім заголовком). Значення: «Дистанційник», «Офісний»
+  // або місто офісу — «Львів», «Дніпро», «Київ» тощо. Розпізнаємо і за заголовком, і за вмістом.
+  const exactRO=v=>LOC_VAL.test(String(v==null?"":v));
   let remoteCol=findCol(H,[/дистанц/,/офісн/,/формат.*роб/]);
   if(remoteCol<0){ let best=0; const maxC=Math.max(H.length,...rows.slice(1,50).map(r=>r?r.length:0)); for(let c=0;c<maxC;c++){ let cnt=0; for(let r=1;r<rows.length;r++){ if(exactRO((rows[r]||[])[c])) cnt++; } if(cnt>best){best=cnt;remoteCol=c;} } if(best<5) remoteCol=-1; }
   const num=v=>{ if(v==null)return null; const n=parseFloat(String(v).replace(",",".").replace(/[^0-9.\-]/g,"")); return isFinite(n)?Math.round(n):null; };
@@ -1008,8 +1024,11 @@ function buildFromRows(rows){
     const name=idx.name>=0?String(row[idx.name]||"").trim():"";
     if(!name) continue;
     const scores=skIdx.map(i=> i>=0? num(row[i]) : null);
-    let remote=null; if(remoteCol>=0){ const rv=get(row,remoteCol).toLowerCase(); if(/^дистанційник$/.test(rv)) remote=true; else if(/^офісний$/.test(rv)) remote=false; }
-    out.push({name,pos:get(row,idx.pos),group:get(row,idx.group),grade:get(row,idx.grade)==="С"?"C":get(row,idx.grade),remote,
+    // формат роботи: remote (true/false/null) + loc (назва офісу/міста або «Дистанційник»)
+    let remote=null, loc=""; if(remoteCol>=0){ const rv=get(row,remoteCol);
+      if(/дистанц/i.test(rv)){ remote=true; loc="Дистанційник"; }
+      else if(LOC_VAL.test(rv)){ remote=false; loc=rv.trim(); } }   // «Офісний» або місто
+    out.push({name,pos:get(row,idx.pos),group:get(row,idx.group),grade:get(row,idx.grade)==="С"?"C":get(row,idx.grade),remote,loc,
       strong:get(row,idx.strong),weak:get(row,idx.weak),stages:get(row,idx.stages),selftasks:get(row,idx.selftasks),
       supporttasks:get(row,idx.supporttasks),programs:get(row,idx.programs),soft:get(row,idx.soft),mgr:get(row,idx.mgr),scores});
   }
@@ -1080,6 +1099,8 @@ function parseWorkloadCSV(text){
   const nameCol=H.findIndex(c=>/ім['’]?я/i.test(c));
   const grpCol =H.findIndex(c=>/поточна|груп/i.test(c));
   const projCol=H.findIndex(c=>/проект/i.test(c));
+  const roleCol=H.findIndex(c=>/роль/i.test(c));           // нова колонка «Роль»
+  const zoneCol=H.findIndex(c=>/зона/i.test(c));           // нова колонка «Зона роботи»
   if(nameCol<0||projCol<0) throw new Error("не розпізнано колонки таблиці завантаженості");
   const weekCols=[]; for(let c=projCol+1;c<H.length;c++){ if(/\d{1,2}[.,]\d{2}/.test(H[c])) weekCols.push(c); }
   csvWeekLabels=weekCols.map(c=>H[c]);   // заголовки тижнів → динамічна сітка
@@ -1099,7 +1120,7 @@ function parseWorkloadCSV(text){
   const merge=(a,b)=> (typeof a==="number"&&typeof b==="number")? +(a+b).toFixed(4) : (prec(a)>=prec(b)?a:b);
   const map={};
   blocks.forEach(b=>{
-    const order=[], pw={}; let last=null;
+    const order=[], pw={}, meta={}; let last=null;   // meta[key] = {role, zone} по проєкту
     b.rows.forEach(row=>{
       const proj=String(row[projCol]||"").trim();
       if(/^проект\s*\/?\s*замовник/i.test(proj)) return;
@@ -1108,14 +1129,19 @@ function parseWorkloadCSV(text){
       const key = proj || last || (hasany?"(інші завдання)":null);
       if(key==null) return;
       if(proj) last=proj;
-      if(!(key in pw)){ pw[key]=weekCols.map(()=>0); order.push(key); }
+      if(!(key in pw)){ pw[key]=weekCols.map(()=>0); order.push(key); meta[key]={role:"",zone:""}; }
+      // роль/зона беремо з рядка проєкту (перше непорожнє значення)
+      const role=roleCol>=0?String(row[roleCol]||"").trim():""; const zone=zoneCol>=0?String(row[zoneCol]||"").trim():"";
+      if(role&&!meta[key].role) meta[key].role=role;
+      if(zone&&!meta[key].zone) meta[key].zone=zone;
       if(!hasany) return;
       for(let wi=0;wi<NW;wi++) pw[key][wi]=merge(pw[key][wi], vals[wi]);
     });
     if(!order.length) return;
     const weeks=weekCols.map((_,wi)=>{ let agg=0; order.forEach(k=>agg=merge(agg,pw[k][wi])); return agg; });
     const cleanName=String(b.name).replace(/\([^)]*\)/g," ").replace(/\s+/g," ").trim();  // прибираємо дужкові суфікси стадій
-    map[normName(b.name)]={name:cleanName,group:b.group,projects:order.filter(k=>k!=="(інші завдання)"),weeks,projectWeeks:order.map(k=>({n:k,w:pw[k].slice()}))};
+    map[normName(b.name)]={name:cleanName,group:b.group,projects:order.filter(k=>k!=="(інші завдання)"),weeks,
+      projectWeeks:order.map(k=>({n:k,w:pw[k].slice(),role:meta[k].role||"",zone:meta[k].zone||""}))};
   });
   if(!Object.keys(map).length) throw new Error("порожня таблиця завантаженості");
   return map;
@@ -1161,12 +1187,15 @@ function activeSkillUrl(){ return document.getElementById("sheetUrl").value||DEF
 
 function rebuildAfterLoad(){
   PEOPLE.forEach(p=>{ p.stageTags=stageTags(p.stages); p.load=WL_MAP[normName(p.name)]||null;
-    if(p.remote==null){ const nn=normName(p.name); if(nn in REMOTE_MAP) p.remote=REMOTE_MAP[nn]; } });
+    if(p.remote==null){ const nn=normName(p.name); if(nn in REMOTE_MAP) p.remote=REMOTE_MAP[nn]; }
+    // якщо місто офісу не прийшло (знімок/лише завантаженість) — виводимо loc із remote
+    if(!p.loc){ p.loc = p.remote===true?"Дистанційник" : p.remote===false?"Офісний" : ""; } });
   // додаємо людей, які є лише в таблиці завантаженості (нові працівники ще без скіл-матриці)
   const known=new Set(PEOPLE.map(p=>normName(p.name)));
   const usedIds=new Set(PEOPLE.map(p=>p.id));
   Object.keys(WL_MAP).forEach(k=>{ if(known.has(k)) return; const w=WL_MAP[k];
     const np={ id:assignId(w.name,usedIds), name:w.name, pos:"", group:w.group||"", grade:"", remote:(k in REMOTE_MAP?REMOTE_MAP[k]:null),
+      loc:(k in REMOTE_MAP?(REMOTE_MAP[k]?"Дистанційник":"Офісний"):""),
       strong:"",weak:"",stages:"",selftasks:"",supporttasks:"",programs:"",soft:"",mgr:"",
       scores:SKILLS.map(()=>null), stageTags:[], load:w, wlOnly:true };
     PEOPLE.push(np); known.add(k);
@@ -1185,14 +1214,14 @@ const FACETS=[
   {key:"pos",   label:"Посада", set:()=>state.pos,   search:true},
   {key:"group", label:"Група",  set:()=>state.group, search:true},
   {key:"stages",label:"Стадії досвіду", set:()=>state.stages, search:false},
-  {key:"remote",label:"Формат роботи", set:()=>state.remote, search:false},
+  {key:"loc",   label:"Формат / офіс", set:()=>state.loc, search:false},
   {key:"avail", label:"Вільність (обраний тиждень)", set:()=>state.avail, search:false},
   {key:"grade", label:"Грейд",  set:()=>state.grade, search:false}
 ];
 function facetValues(f){
   if(f.key==="grade") return gradeFacetValues();
   if(f.key==="avail") return ["free","partial","maybe","busy"].map(t=>AVAIL_LABEL[t]);
-  if(f.key==="remote"){ const r=[]; if(PEOPLE.some(p=>p.remote===true)) r.push(REMOTE_LABEL[true]); if(PEOPLE.some(p=>p.remote===false)) r.push(REMOTE_LABEL[false]); return r; }
+  if(f.key==="loc") return locFacetValues();
   if(f.key==="stages") return STAGES.filter(s=>PEOPLE.some(p=>(p.stageTags||[]).includes(s)));
   if(f.key==="pos"){
     const set=new Set(); PEOPLE.forEach(p=>posTokens(p.pos).forEach(t=>set.add(t)));
@@ -1297,7 +1326,7 @@ function passFilters(p){
   if(state.group.size && !state.group.has(p.group)) return false;
   if(state.stages.size){ const tg=p.stageTags||[]; if(!tg.some(t=>state.stages.has(t))) return false; }
   if(state.avail.size){ const st=rangeStatus(p); if(!state.avail.has(AVAIL_LABEL[st.type])) return false; }
-  if(state.remote.size){ if(p.remote==null || !state.remote.has(REMOTE_LABEL[p.remote])) return false; }
+  if(state.loc.size){ if(!p.loc || !state.loc.has(locLabel(p.loc))) return false; }
   return true;
 }
 function render(){
@@ -1327,7 +1356,7 @@ function render(){
     tb.innerHTML=rows.map(({p,e})=>{
       const inTeam=state.team.has(p.id);
       const homeIcon = p.remote ? ' <span class="remote" title="Дистанційник">🏠</span>' : '';
-      let r=`<tr><td class="name"><span class="nm" onclick="openP('${escId(p.id)}')">${esc(p.name)}</span>${homeIcon}<br>
+      let r=`<tr><td class="name"><span class="nm" onclick="openP('${escId(p.id)}')">${esc(p.name)}</span>${homeIcon}${cityTag(p)}<br>
         <span class="meta">${gradeBadge(p.grade)} ${esc(p.pos)} · ${esc(p.group)}</span></td>`;
       const st=rangeStatus(p);
       const avTxt = st.type==="free"?"вільний": st.type==="partial"?(Math.round(st.freePct*100)+"%"): st.type==="maybe"?"потенційно": st.type==="busy"?"зайнятий": st.type==="off"?"відп./лік.": st.type==="office"?"офіс":"—";
@@ -1439,7 +1468,7 @@ window.openP=function(id){
   }
   box.innerHTML=`<button class="x" onclick="document.getElementById('modal').classList.remove('on')">✕</button>
     <h3>${esc(p.name)}${p.remote?' <span class="remote" title="Дистанційник">🏠</span>':''}</h3>
-    <div class="role">${gradeBadge(p.grade)} ${esc(p.pos)} · ${esc(p.group)}${p.remote===true?' · <b style="color:var(--acc)">🏠 Дистанційник</b>':p.remote===false?' · Офісний':''}</div>
+    <div class="role">${gradeBadge(p.grade)} ${esc(p.pos)} · ${esc(p.group)}${p.loc?' · '+(p.remote?'<b style="color:var(--acc)">'+locLabel(p.loc)+'</b>':locLabel(p.loc)):''}</div>
     ${(p.stageTags&&p.stageTags.length)?`<div class="stagetags">Стадії досвіду: ${p.stageTags.map(t=>`<span class="stag">${esc(t)}</span>`).join("")}</div>`:""}
     ${wl}
     ${grid}
@@ -1496,21 +1525,25 @@ document.querySelectorAll(".side,.main").forEach(el=>el.addEventListener("scroll
 document.getElementById("refreshBtn").onclick=()=>{ refreshAll(false); };
 
 /* ---------- report: who frees up soonest ---------- */
-const repState={view:"alerts",horizon:999,pos:new Set(),grades:new Set(),stages:new Set()};
-function computeRelease(p){
+const repState={view:"alerts",horizon:999,pos:new Set(),grades:new Set(),stages:new Set(),loc:new Set(),loadMax:100};
+// мін. частка вільного часу, щоб людину показувати (повзунок «Завантаженість ≤ X%»)
+function repMinFree(){ return repState.loadMax>=100 ? 0.001 : Math.max(0.001, 1 - repState.loadMax/100); }
+function computeRelease(p, minFree){
   if(!p.load) return null;
+  minFree = minFree||0.001;                      // мін. вільна частка, щоб тиждень рахувався «вільним»
   const cur=currentWeekIdx();
+  const freeEnough=s=> (s.type==="free"||s.type==="partial"||s.type==="maybe") && (s.free==null? true : s.free>=minFree-1e-9);
   for(let wi=cur;wi<WL_WEEKS.length;wi++){
     if(weekFullyOff(wi)) continue;             // офіс не працює цей тиждень
     const st=weekStatus(p,wi);
-    if(st.type==="free"||st.type==="partial"||st.type==="maybe"){
-      // тривалість вікна: скільки тижнів поспіль лишається вільний час (до зайнятості/відпустки)
+    if(freeEnough(st)){
+      // тривалість вікна: скільки тижнів поспіль лишається достатньо вільного часу (до зайнятості/відпустки)
       let dur=0;
-      for(let w=wi;w<WL_WEEKS.length;w++){ if(weekFullyOff(w)) continue; const s=weekStatus(p,w); if(s.type==="free"||s.type==="partial"||s.type==="maybe") dur++; else break; }
+      for(let w=wi;w<WL_WEEKS.length;w++){ if(weekFullyOff(w)) continue; if(freeEnough(weekStatus(p,w))) dur++; else break; }
       return {wi,free:st.free,load:st.load||0,now:wi===cur,dur};
     }
   }
-  return null; // зайнятий/у відпустці весь горизонт
+  return null; // зайнятий/у відпустці весь горизонт (за обраним порогом)
 }
 function currentLoadTxt(p){
   const cur=currentWeekIdx(); const st=weekStatus(p,cur);
@@ -1538,6 +1571,7 @@ function repPassSkill(p){
   if(repState.pos.size){ if(!posMatchSel(posTokens(p.pos), repState.pos)) return false; }
   if(repState.grades.size){ const b=gradeBase(p.grade); if(!(repState.grades.has(canonGrade(p.grade)) || repState.grades.has(b+" · усі"))) return false; }
   if(repState.stages.size){ const tg=p.stageTags||[]; if(!tg.some(t=>repState.stages.has(t))) return false; }
+  if(repState.loc.size){ if(!p.loc || !repState.loc.has(locLabel(p.loc))) return false; }
   return true;
 }
 function buildReport(){
@@ -1545,12 +1579,13 @@ function buildReport(){
   document.getElementById("reportTitle").innerHTML="📋 Звіт — хто найближче вивільняється";
   const cur=currentWeekIdx();
   const cutoff = repState.horizon>=999 ? WL_WEEKS.length-1 : Math.min(WL_WEEKS.length-1, cur+repState.horizon-1);
-  let rows=PEOPLE.map(p=>({p,rel:computeRelease(p)})).filter(x=>x.p.load && repPassSkill(x.p));
+  const mf=repMinFree();
+  let rows=PEOPLE.map(p=>({p,rel:computeRelease(p,mf)})).filter(x=>x.p.load && repPassSkill(x.p));
   const releasing=rows.filter(x=>x.rel && x.rel.wi<=cutoff).sort((a,b)=> a.rel.wi-b.rel.wi || b.rel.free-a.rel.free || a.p.name.localeCompare(b.p.name,"uk"));
   const busy=rows.filter(x=>!x.rel || x.rel.wi>cutoff);
   const noData=PEOPLE.filter(p=>!p.load && repPassSkill(p)).length;
   const horizonTxt = repState.horizon>=999 ? `весь період (${WL_WEEKS[cur]} → ${WL_WEEKS[WL_WEEKS.length-1]})` : `${WL_WEEKS[cur]} → ${WL_WEEKS[cutoff]}`;
-  const flt = (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.stages.size?` · стадія ${[...repState.stages].join("/")}`:"");
+  const flt = (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.stages.size?` · стадія ${[...repState.stages].join("/")}`:"") + (repState.loc.size?` · ${[...repState.loc].join("/")}`:"") + (repState.loadMax<100?` · завантаженість < ${repState.loadMax}%`:"");
   document.getElementById("reportSub").innerHTML=
     `Горизонт: <b>${horizonTxt}</b>${flt} · вивільняються: <b>${releasing.length}</b> · не вивільняються: <b>${busy.length}</b> · без даних: ${noData}`;
   const body=document.getElementById("reportBody");
@@ -1570,7 +1605,7 @@ function buildReport(){
     const durTxt = rel.dur>=(WL_WEEKS.length-rel.wi) ? "до кінця періоду" : `~${rel.dur} ${repWeeksWord(rel.dur)}`;
     html+=`<div class="rep-row" onclick="openP('${escId(p.id)}')">
       <div class="rep-when"><b>${rel.now?"зараз":WL_WEEKS[rel.wi].split("–")[0]}</b><span>вікно: ${durTxt}</span></div>
-      <div class="rep-who"><span class="nm">${esc(p.name)}${home}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+      <div class="rep-who"><span class="nm">${esc(p.name)}${home}${cityTag(p)}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
       <div class="rep-free">вивільняється до<br><b style="color:${availColor(rel.free>=0.999?'free':'partial')}">${freePct}%</b> вільного часу${hasPotential(p,rel.wi,rel.dur)?`<div class="pot-note">⚠ Потенційно завантажений</div>`:""}</div>
     </div>`;
   });
@@ -1581,7 +1616,7 @@ function buildReport(){
       const later = rel ? "з "+WL_WEEKS[rel.wi].split("–")[0]+" ("+Math.round(rel.free*100)+"%)" : "не вивільняється";
       html+=`<div class="rep-row" onclick="openP('${escId(p.id)}')">
         <div class="rep-when"><b>${rel?WL_WEEKS[rel.wi].split("–")[0]:"—"}</b><span>${rel?"поза горизонтом":"весь період"}</span></div>
-        <div class="rep-who"><span class="nm">${esc(p.name)}${home}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+        <div class="rep-who"><span class="nm">${esc(p.name)}${home}${cityTag(p)}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
         <div class="rep-free">${esc(later)}${rel&&hasPotential(p,rel.wi,rel.dur)?`<div class="pot-note">⚠ Потенційно завантажений</div>`:""}</div>
       </div>`;
     });
@@ -1594,9 +1629,10 @@ function buildAlerts(){
   const cur=currentWeekIdx();
   const cutoff = repState.horizon>=999 ? WL_WEEKS.length-1 : Math.min(WL_WEEKS.length-1, cur+repState.horizon-1);
   const items=[];
+  const mf=repMinFree();
   PEOPLE.forEach(p=>{
     if(!p.load || !repPassSkill(p)) return;
-    const rel=computeRelease(p);
+    const rel=computeRelease(p,mf);
     if(!rel || rel.wi>cutoff) return;                 // зайнятий увесь горизонт або звільняється поза горизонтом
     // чи тягнеться вільне вікно до кінця періоду + остання вільна неділя вікна
     let openEnded=true, lastFree=rel.wi;
@@ -1616,7 +1652,7 @@ function buildAlerts(){
 function alertSentence(it){
   const {p,rel,weeksUntil,openEnded,lastFree,full,pot}=it;
   const freePct=Math.round(rel.free*100);
-  const nm=`<span class="nm">${esc(p.name)}${p.remote?' 🏠':''}</span>`;
+  const nm=`<span class="nm">${esc(p.name)}${p.remote?' 🏠':''}${cityTag(p)}</span>`;
   const potB = pot?` <span class="al-badge pot">є «?»</span>`:"";
   const dstart=fmtDate(WL_STARTS[rel.wi]);
   const stateFull = full ? "повністю без завантаження" : `вільний час ~${freePct}%`;
@@ -1655,7 +1691,7 @@ function renderAlerts(){
   const {items,cur,cutoff}=buildAlerts();
   const cnt={now:0,soon:0,plan:0}; items.forEach(it=>cnt[it.tier]++);
   const horizonTxt = repState.horizon>=999 ? `весь період` : `${WL_WEEKS[cur]} → ${WL_WEEKS[cutoff]}`;
-  const flt = (repState.pos.size?` · посада ${[...repState.pos].join("/")}`:"") + (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.stages.size?` · стадія ${[...repState.stages].join("/")}`:"");
+  const flt = (repState.pos.size?` · посада ${[...repState.pos].join("/")}`:"") + (repState.grades.size?` · грейд ${[...repState.grades].join("/")}`:"") + (repState.stages.size?` · стадія ${[...repState.stages].join("/")}`:"") + (repState.loc.size?` · ${[...repState.loc].join("/")}`:"") + (repState.loadMax<100?` · завантаженість < ${repState.loadMax}%`:"");
   document.getElementById("reportSub").innerHTML =
     `Горизонт: <b>${horizonTxt}</b>${flt} · усього попереджень: <b>${items.length}</b> · 🔴 ${cnt.now} · 🟠 ${cnt.soon} · 🟢 ${cnt.plan}`;
   const body=document.getElementById("reportBody");
@@ -1708,7 +1744,10 @@ function initReportControls(){
   makeMiniDD(document.getElementById("repPosDD"),"Посада",posFacetValues,repState.pos,true,buildReport);
   makeMiniDD(document.getElementById("repGradeDD"),"Грейд",gradeFacetValues,repState.grades,false,buildReport);
   makeMiniDD(document.getElementById("repStageDD"),"Стадія",stageFacetValues,repState.stages,false,buildReport);
+  makeMiniDD(document.getElementById("repLocDD"),"Формат",locFacetValues,repState.loc,false,buildReport);
   document.getElementById("repHorizon").onchange=e=>{ repState.horizon=+e.target.value; buildReport(); };
+  const sl=document.getElementById("repLoadMax"), lbl=document.getElementById("repLoadMaxLbl");
+  sl.oninput=e=>{ repState.loadMax=+e.target.value; lbl.textContent = repState.loadMax>=100 ? "усі" : ("менше "+repState.loadMax+"%"); buildReport(); };
   document.querySelectorAll("#repView .chip").forEach(c=>c.onclick=()=>{ document.querySelectorAll("#repView .chip").forEach(x=>x.classList.remove("on")); c.classList.add("on"); repState.view=c.dataset.v; buildReport(); });
 }
 let repInit=false;
@@ -1732,7 +1771,7 @@ function collectProjects(startFrom){
       let hasAny=false; for(let i=startFrom;i<pw.w.length;i++){ const v=pw.w[i]; if(v==="?"||(typeof v==="number"&&v>0)){ hasAny=true; break; } }
       if(!hasAny) return;                       // немає роботи у вікні — людину не показуємо
       if(!map.has(pw.n)) map.set(pw.n,[]);
-      map.get(pw.n).push({p, w:pw.w});
+      map.get(pw.n).push({p, w:pw.w, role:pw.role||"", zone:pw.zone||""});
     });
   });
   const out=[];
@@ -1791,8 +1830,9 @@ function buildProjects(){
     mem.forEach(({m,info})=>{
       const p=m.p; const home=p.remote?' 🏠':'';
       const span = (info.f<99) ? fmtDate(WL_STARTS[info.f])+" – "+fmtDate(WL_ENDS[info.l]) : "—";
+      const rz = (m.role||m.zone) ? `<div class="pj-mem-rz">${m.role?`<span class="pj-role">🎭 ${esc(m.role)}</span>`:""}${m.zone?`<span class="pj-zone">🗂 ${esc(m.zone)}</span>`:""}</div>` : "";
       rows+=`<div class="pj-mem" onclick="openP('${escId(p.id)}')">
-        <div class="pj-mem-name"><b>${esc(p.name)}${home}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos||"—")}${p.group?" · "+esc(p.group):""}</span></div>
+        <div class="pj-mem-name"><b>${esc(p.name)}${home}${cityTag(p)}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos||"—")}${p.group?" · "+esc(p.group):""}</span>${rz}</div>
         <div class="pj-mem-slot">${span}</div>
         <div class="pj-mem-load">${info.anyPot&&info.loadTxt==="потенційно"?`<span style="color:${availColor('maybe')}">потенційно</span>`:esc(info.loadTxt)}${info.anyPot&&info.loadTxt!=="потенційно"?` <span style="color:${availColor('maybe')}">+?</span>`:""}</div>
       </div>`;
@@ -1828,6 +1868,11 @@ const GRADES_ORD=["J","C","B","A","L"];
 const csState={slots:[],startIdx:0,team:[],browse:{}};
 function csDefaultSlot(){ return {pos:new Set(),grades:new Set(),stages:new Set(),skill:-1,skillMin:0,count:1,load:1,dur:4,offset:0,core:true}; }
 function stageFacetValues(){ return STAGES.filter(s=>PEOPLE.some(p=>(p.stageTags||[]).includes(s))); }
+function locFacetValues(){
+  const labs=[...new Set(PEOPLE.map(p=>locLabel(p.loc)).filter(Boolean))];
+  const rank=l=> l.startsWith("🏠")?0 : l.startsWith("🏢")?9 : 1;   // дистанційні зверху, «офіс без міста» — у кінці
+  return labs.sort((a,b)=> rank(a)-rank(b) || a.localeCompare(b,"uk"));
+}
 function csPositions(){ const set=new Set(); PEOPLE.forEach(p=>posTokens(p.pos).forEach(t=>set.add(t))); return [...set].sort((a,b)=>{ const ka=/^К\d/i.test(a),kb=/^К\d/i.test(b); if(ka!==kb) return ka?1:-1; return a.localeCompare(b,"uk"); }); }
 function renderSlots(){
   const wrap=document.getElementById("slotRows"); wrap.innerHTML="";
