@@ -1832,7 +1832,7 @@ function buildProjects(){
       const span = (info.f<99) ? fmtDate(WL_STARTS[info.f])+" – "+fmtDate(WL_ENDS[info.l]) : "—";
       const rz = (m.role||m.zone) ? `<div class="pj-mem-rz">${m.role?`<span class="pj-role">🎭 ${esc(m.role)}</span>`:""}${m.zone?`<span class="pj-zone">🗂 ${esc(m.zone)}</span>`:""}</div>` : "";
       rows+=`<div class="pj-mem" onclick="openP('${escId(p.id)}')">
-        <div class="pj-mem-name"><b>${esc(p.name)}${home}${cityTag(p)}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos||"—")}${p.group?" · "+esc(p.group):""}</span>${rz}</div>
+        <div class="pj-mem-name"><b>${esc(p.name)}${home}${cityTag(p)}</b> ${gradeBadge(p.grade)}${rz}</div>
         <div class="pj-mem-slot">${span}</div>
         <div class="pj-mem-load">${info.anyPot&&info.loadTxt==="потенційно"?`<span style="color:${availColor('maybe')}">потенційно</span>`:esc(info.loadTxt)}${info.anyPot&&info.loadTxt!=="потенційно"?` <span style="color:${availColor('maybe')}">+?</span>`:""}</div>
       </div>`;
