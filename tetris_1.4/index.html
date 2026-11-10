@@ -143,6 +143,8 @@
   .remote{font-size:12px;cursor:help;vertical-align:baseline}
   .loc-tag{display:inline-block;font-size:10px;font-weight:600;color:#8ab4ff;background:#14203a;border:1px solid #2c4a7a;border-radius:999px;padding:0 6px;margin-left:5px;vertical-align:middle;white-space:nowrap}
   .gsub{font-size:10px;color:var(--mut);margin-left:3px;vertical-align:baseline}
+  .wl-missing{display:inline-block;font-size:10.5px;font-weight:600;color:#ffb4a0;background:#2e1a14;border:1px solid #7a3a28;border-radius:999px;padding:0 7px;vertical-align:middle;white-space:nowrap}
+  .muted-sm{color:var(--mut);font-size:11px}
   .cell{border-radius:6px;font-variant-numeric:tabular-nums;font-weight:600;color:#0b1120}
   .cell.req{box-shadow:inset 0 0 0 2px var(--acc)}
   .fit{font-weight:800;font-variant-numeric:tabular-nums}
@@ -962,6 +964,10 @@ function posMatchSel(pTokens, sel){
 }
 function gradeColor(g){ return ({J:"#8aa0c8",C:"#5b8def",B:"#7c5cff",A:"#3ecf8e",L:"#f5b544"})[gradeBase(g)]||"#3a476b"; }
 function gradeBadge(g){ const b=gradeBase(g); if(!b) return '<span class="gbadge" style="background:#3a476b">—</span>'; const s=gradeSub(g); return `<span class="gbadge" style="background:${gradeColor(g)}">${b}</span>${s?`<span class="gsub">${s}</span>`:""}`; }
+// позначка «немає в скіл-матриці» для людей лише з таблиці завантаженості
+function wlMissBadge(){ return `<span class="wl-missing" title="Цієї людини немає в скіл-матриці — її треба додати">⚠ немає в скіл-матриці</span>`; }
+// текст групи для списків: орггрупа, або для workload-only — позначка «немає в скіл-матриці»
+function grpTxt(p){ return p.wlOnly ? wlMissBadge() : esc(p.group||"—"); }
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
 /* ---------- CSV parsing + column mapping ---------- */
@@ -1194,7 +1200,7 @@ function rebuildAfterLoad(){
   const known=new Set(PEOPLE.map(p=>normName(p.name)));
   const usedIds=new Set(PEOPLE.map(p=>p.id));
   Object.keys(WL_MAP).forEach(k=>{ if(known.has(k)) return; const w=WL_MAP[k];
-    const np={ id:assignId(w.name,usedIds), name:w.name, pos:"", group:w.group||"", grade:"", remote:(k in REMOTE_MAP?REMOTE_MAP[k]:null),
+    const np={ id:assignId(w.name,usedIds), name:w.name, pos:"", group:"", contactGroup:(w.group||""), grade:"", remote:(k in REMOTE_MAP?REMOTE_MAP[k]:null),
       loc:(k in REMOTE_MAP?(REMOTE_MAP[k]?"Дистанційник":"Офісний"):""),
       strong:"",weak:"",stages:"",selftasks:"",supporttasks:"",programs:"",soft:"",mgr:"",
       scores:SKILLS.map(()=>null), stageTags:[], load:w, wlOnly:true };
@@ -1357,7 +1363,7 @@ function render(){
       const inTeam=state.team.has(p.id);
       const homeIcon = p.remote ? ' <span class="remote" title="Дистанційник">🏠</span>' : '';
       let r=`<tr><td class="name"><span class="nm" onclick="openP('${escId(p.id)}')">${esc(p.name)}</span>${homeIcon}${cityTag(p)}<br>
-        <span class="meta">${gradeBadge(p.grade)} ${esc(p.pos)} · ${esc(p.group)}</span></td>`;
+        <span class="meta">${gradeBadge(p.grade)} ${esc(p.pos)} · ${grpTxt(p)}</span></td>`;
       const st=rangeStatus(p);
       const avTxt = st.type==="free"?"вільний": st.type==="partial"?(Math.round(st.freePct*100)+"%"): st.type==="maybe"?"потенційно": st.type==="busy"?"зайнятий": st.type==="off"?"відп./лік.": st.type==="office"?"офіс":"—";
       const avTitle = AVAIL_LABEL[st.type]+(st.workDays!=null?` · вільно ${Math.round((st.freePct||0)*100)}% з ${(st.workDays+(st.offDays||0))} роб. дн.`:"")+(st.offDays?` · відпустка/лік. ${st.offDays} дн.`:"")+` · ${state.from} — ${state.to}`;
@@ -1405,7 +1411,7 @@ function renderTeam(){
 document.getElementById("clearTeam").onclick=()=>{ state.team.clear(); state.teamNames.clear(); lsSet(LS.team,"[]"); render(); };
 document.getElementById("copyTeam").onclick=()=>{
   const mem=[...state.team].map(id=>PEOPLE.find(p=>p.id===id)).filter(Boolean);
-  const txt=mem.map(p=>`• ${p.name} — ${p.pos} (грейд ${p.grade||'—'}, ${p.group})`).join("\n");
+  const txt=mem.map(p=>`• ${p.name} — ${p.pos} (грейд ${p.grade||'—'}, ${p.wlOnly?'немає в скіл-матриці':p.group})`).join("\n");
   navigator.clipboard?.writeText("Команда:\n"+txt).then(()=>{
     const b=document.getElementById("copyTeam"),t=b.textContent; b.textContent="Скопійовано ✓"; setTimeout(()=>b.textContent=t,1400);
   });
@@ -1468,7 +1474,7 @@ window.openP=function(id){
   }
   box.innerHTML=`<button class="x" onclick="document.getElementById('modal').classList.remove('on')">✕</button>
     <h3>${esc(p.name)}${p.remote?' <span class="remote" title="Дистанційник">🏠</span>':''}</h3>
-    <div class="role">${gradeBadge(p.grade)} ${esc(p.pos)} · ${esc(p.group)}${p.loc?' · '+(p.remote?'<b style="color:var(--acc)">'+locLabel(p.loc)+'</b>':locLabel(p.loc)):''}</div>
+    <div class="role">${gradeBadge(p.grade)} ${p.pos?esc(p.pos)+' · ':''}${grpTxt(p)}${p.wlOnly&&p.contactGroup?' <span class="muted-sm">контактна група: '+esc(p.contactGroup)+'</span>':''}${p.loc?' · '+(p.remote?'<b style="color:var(--acc)">'+locLabel(p.loc)+'</b>':locLabel(p.loc)):''}</div>
     ${(p.stageTags&&p.stageTags.length)?`<div class="stagetags">Стадії досвіду: ${p.stageTags.map(t=>`<span class="stag">${esc(t)}</span>`).join("")}</div>`:""}
     ${wl}
     ${grid}
@@ -1605,7 +1611,7 @@ function buildReport(){
     const durTxt = rel.dur>=(WL_WEEKS.length-rel.wi) ? "до кінця періоду" : `~${rel.dur} ${repWeeksWord(rel.dur)}`;
     html+=`<div class="rep-row" onclick="openP('${escId(p.id)}')">
       <div class="rep-when"><b>${rel.now?"зараз":WL_WEEKS[rel.wi].split("–")[0]}</b><span>вікно: ${durTxt}</span></div>
-      <div class="rep-who"><span class="nm">${esc(p.name)}${home}${cityTag(p)}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+      <div class="rep-who"><span class="nm">${esc(p.name)}${home}${cityTag(p)}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${grpTxt(p)}</span></div>
       <div class="rep-free">вивільняється до<br><b style="color:${availColor(rel.free>=0.999?'free':'partial')}">${freePct}%</b> вільного часу${hasPotential(p,rel.wi,rel.dur)?`<div class="pot-note">⚠ Потенційно завантажений</div>`:""}</div>
     </div>`;
   });
@@ -1616,7 +1622,7 @@ function buildReport(){
       const later = rel ? "з "+WL_WEEKS[rel.wi].split("–")[0]+" ("+Math.round(rel.free*100)+"%)" : "не вивільняється";
       html+=`<div class="rep-row" onclick="openP('${escId(p.id)}')">
         <div class="rep-when"><b>${rel?WL_WEEKS[rel.wi].split("–")[0]:"—"}</b><span>${rel?"поза горизонтом":"весь період"}</span></div>
-        <div class="rep-who"><span class="nm">${esc(p.name)}${home}${cityTag(p)}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+        <div class="rep-who"><span class="nm">${esc(p.name)}${home}${cityTag(p)}</span> ${gradeBadge(p.grade)}<br><span class="meta">${esc(p.pos)} · ${grpTxt(p)}</span></div>
         <div class="rep-free">${esc(later)}${rel&&hasPotential(p,rel.wi,rel.dur)?`<div class="pot-note">⚠ Потенційно завантажений</div>`:""}</div>
       </div>`;
     });
@@ -1668,7 +1674,7 @@ function alertSentence(it){
       ? `${nm} — уже цього тижня є вільне вікно: ${full?"повне":`~${freePct}%`}, на ${durTxt} (${dstart}–${dend})${potB}`
       : `${nm} — звільняється <span class="when">через ${weeksUntil} ${repWeeksWord(weeksUntil)}</span> (з ${dstart}): ${full?"повне вільне вікно":`~${freePct}% вільного часу`}, на ${durTxt} до ${dend}${potB}`;
   }
-  const sub=`<span class="sub">${esc(p.pos||"—")}${p.group?" · "+esc(p.group):""}${p.grade?" · "+esc(p.grade):""}</span>`;
+  const sub=`<span class="sub">${esc(p.pos||"—")}${p.wlOnly?" · "+wlMissBadge():(p.group?" · "+esc(p.group):"")}${p.grade?" · "+esc(p.grade):""}</span>`;
   return main+sub;
 }
 // міні-смужка тижнів від поточного до кінця періоду — щоб ОКОМ бачити довжину вільного вікна
@@ -1800,6 +1806,17 @@ function projMemberInfo(m, startFrom){
   const loadTxt = lv.length? (lv.length===1? lv[0]+"%" : lv[0]+"–"+lv[lv.length-1]+"%") : (anyPot?"потенційно":"—");
   return {f,l,loadTxt,anyPot,total,weeks};
 }
+// порядок ролей у команді проєкту (як у випадайці таблиці): ГАП → КГ → ПАП (всього) → ПАП (частини) → Проектант → решта/без ролі
+function roleRank(r){
+  const s=String(r||"").toLowerCase().trim();
+  if(!s) return 99;
+  const toks=s.split(/[^a-zа-яіїєґ]+/i).filter(Boolean);   // межа слова \b не працює з кирилицею — токенізуємо
+  if(/гап/.test(s)) return 0;
+  if(toks.includes("кг")||(/керівник/.test(s)&&/груп/.test(s))) return 1;
+  if(/пап/.test(s)) return /частин/.test(s) ? 3 : 2;   // «ПАП (частини проекту)» нижче за «ПАП (всього проекту)»
+  if(/проектант/.test(s)) return 4;
+  return 5;
+}
 function buildProjects(){
   const startFrom=projStartFrom();
   let list=collectProjects(startFrom);
@@ -1825,7 +1842,7 @@ function buildProjects(){
       : `<span class="pj-badge pot">потенційний</span>`;
     const potMark = pr.status==="active"&&pr.hasPot ? ` <span class="pj-badge potmini">є потенційні</span>` : "";
     // сортуємо учасників за кількістю тижнів (слотів) на проєкті: найдовше зайняті → на 1 тиждень
-    const mem=pr.members.map(m=>({m,info:projMemberInfo(m,0)})).sort((a,b)=> b.info.weeks-a.info.weeks || (b.info.l-b.info.f)-(a.info.l-a.info.f) || a.info.f-b.info.f);
+    const mem=pr.members.map(m=>({m,info:projMemberInfo(m,0)})).sort((a,b)=> roleRank(a.m.role)-roleRank(b.m.role) || b.info.weeks-a.info.weeks || (b.info.l-b.info.f)-(a.info.l-a.info.f) || a.info.f-b.info.f);
     let rows="";
     mem.forEach(({m,info})=>{
       const p=m.p; const home=p.remote?' 🏠':'';
@@ -2065,7 +2082,7 @@ function csBrowserHTML(sl,idx){
     <div class="cs-brow-body">
       <button class="cs-nav" onclick="csBrowse(${idx},-1)" title="Попередній кандидат">◀ назад</button>
       <div class="cs-cand" onclick="openP('${escId(p.id)}')">
-        <div><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+        <div><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${grpTxt(p)}</span></div>
         <div class="meta">${availTxt} · кандидат ${bi+1} з ${pool.length}</div>
       </div>
       <button class="cs-nav" onclick="csBrowse(${idx},1)" title="Наступний кандидат">наступний ▶</button>
@@ -2161,7 +2178,7 @@ function renderTeam(){
         : `<span style="color:${availColor('busy')}">не встигає</span>${rTxt}`;
       html+=`<div class="cs-tm">
         <div class="cs-tm-role">${esc(shortRole(sl))}</div>
-        <div class="cs-tm-name" onclick="openP('${escId(p.id)}')"><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${esc(p.group)}</span></div>
+        <div class="cs-tm-name" onclick="openP('${escId(p.id)}')"><b>${esc(p.name)}${p.remote?' 🏠':''}</b> ${gradeBadge(p.grade)} <span class="meta">${esc(p.pos)} · ${grpTxt(p)}</span></div>
         <div class="cs-tm-av">${avTxt}</div>
         <button class="cs-rm" onclick="csRemove(${pos})" title="Прибрати з команди">✕</button>
       </div>`;
