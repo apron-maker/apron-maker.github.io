@@ -2080,12 +2080,64 @@ function diffSnapshots(oldR, newR) {
   Object.keys(om).forEach(function (k) {
     if (!nm[k]) dropped.push(om[k]);
   });
+  // --- розпізнавання ПЕРЕЙМЕНУВАНЬ: паруємо залишки new/dropped за ОДНОЗНАЧНИМ відбитком стабільних полів ---
+  var renamed = [];
+  var finalNew = newP,
+    finalDropped = dropped;
+  (function () {
+    var fpOf = function (r) {
+      return [r.customer, r.group, r.pm, r.revenue_plan, r.stage, r.deadline_date].map(function (x) {
+        return String(x == null ? "" : x).trim().toLowerCase();
+      }).join("|");
+    };
+    var dropByFp = {},
+      dropCnt = {},
+      newCnt = {};
+    dropped.forEach(function (o) {
+      var ff = fpOf(o);
+      (dropByFp[ff] = dropByFp[ff] || []).push(o);
+      dropCnt[ff] = (dropCnt[ff] || 0) + 1;
+    });
+    newP.forEach(function (n) {
+      var ff = fpOf(n);
+      newCnt[ff] = (newCnt[ff] || 0) + 1;
+    });
+    var usedDrop = {};
+    finalNew = [];
+    newP.forEach(function (n) {
+      var ff = fpOf(n);
+      var empty = ff.split("|").every(function (x) {
+        return x === "";
+      });
+      if (!empty && dropCnt[ff] === 1 && newCnt[ff] === 1) {
+        var o = dropByFp[ff][0];
+        usedDrop[ff] = true;
+        var dg = Math.round((n.readiness_pct || 0) - (o.readiness_pct || 0));
+        var dpRaw = (n.payment_pct || 0) - (o.payment_pct || 0),
+          dp = Math.round(dpRaw);
+        var paid = Math.round((n.revenue_plan || 0) * dpRaw / 100);
+        if (Math.abs(dpRaw) >= 0.5 || paid !== 0) {
+          payments.push({ n, o, dp, paid });
+          if (paid > 0) paidIn += paid;else paidBack += paid;
+        }
+        if (dg !== 0) movers.push({ n, o, dg, dp });else if (ACTIVE_STATUSES.includes(n.status) && (n.readiness_pct || 0) < 100) stalled.push({ n, o, dp });
+        if (String(n.status) !== String(o.status)) statusChg.push({ n, o });
+        renamed.push({ o, n });
+      } else {
+        finalNew.push(n);
+      }
+    });
+    finalDropped = dropped.filter(function (o) {
+      return !usedDrop[fpOf(o)];
+    });
+  })();
   return {
     movers,
     stalled,
     statusChg,
-    newP,
-    dropped,
+    newP: finalNew,
+    dropped: finalDropped,
+    renamed,
     payments,
     paidIn,
     paidBack,
@@ -2572,6 +2624,22 @@ function CompareView(p) {
         color: C.text
       }
     }, m.n.status || "—")));
+  })), d.renamed && d.renamed.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: { marginTop: 16 }
+  }, /*#__PURE__*/React.createElement(TierHeader, {
+    icon: "🔁",
+    title: "ПЕРЕЙМЕНОВАНО (та сама картка, нова назва)",
+    count: d.renamed.length,
+    color: C.purple
+  }), d.renamed.map(function (m, i) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: { fontSize: 12, padding: "6px 12px", borderBottom: "1px solid #eef1f5" }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: { color: C.muted, textDecoration: "line-through" }
+    }, m.o.project), /*#__PURE__*/React.createElement("span", {
+      style: { color: C.purple, margin: "0 6px", fontWeight: 700 }
+    }, "→"), /*#__PURE__*/React.createElement("b", null, m.n.project));
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
