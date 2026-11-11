@@ -1113,7 +1113,8 @@ function parseWorkloadCSV(text){
   const NW=weekCols.length;
   const isVac=v=>/відпустк|лікарн|відгул/i.test(String(v==null?"":v));
   const num=v=>{ v=String(v==null?"":v).trim().replace("%","").replace(",","."); if(v==="") return null; const n=parseFloat(v); if(!isFinite(n)) return null; return n>1.5?n/100:n; };
-  function cellVal(v){ const s=String(v==null?"":v).trim(); if(isVac(s)) return "vac"; if(s==="?") return "?"; const n=num(s); return (n!=null&&n!==0)?+n.toFixed(4):0; }
+  // будь-яка клітинка з «?» (навіть із числом, напр. «0,5?») = ПОТЕНЦІЙНА завантаженість, не підтверджена
+  function cellVal(v){ const s=String(v==null?"":v).trim(); if(isVac(s)) return "vac"; if(s.indexOf("?")>=0) return "?"; const n=num(s); return (n!=null&&n!==0)?+n.toFixed(4):0; }
   // блоки по людині
   const blocks=[]; let cur=null;
   for(let i=hi+1;i<rows.length;i++){
