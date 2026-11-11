@@ -653,11 +653,17 @@ const RUBRIC={
    {lo:70,hi:100,name:"Високий рівень",groups:[
      {t:"",items:["Складні монтажі; AI-інструменти","Світлові ефекти (God Rays, Volumetric Light), атмосферні ефекти, Lighting Effects","Dodge and Burn для світлотіні","Actions (автоматизація повторюваних завдань)"]}]}]}
 };
-const LS={url:"sm_sheet_url",team:"sm_team",wlurl:"sm_wl_url"};
+const LS={url:"sm_sheet_url",team:"sm_team",wlurl:"sm_wl_url",wltabs:"sm_wl_tabs"};
 // Скіл-матриця — опублікований CSV (працює наживо)
 const DEFAULT_SHEET_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6oyzxClKYGMfRwRbdIiQiL7jfkjl316sE3ClwaQ2euRhetyXP-tg43wwYO2gscNQrwI9PYIbos8oS/pub?gid=1643796662&single=true&output=csv";
 // Завантаженість — опублікований CSV. Порожньо, доки таблицю не опубліковано (Файл → Опублікувати в Інтернеті → CSV). Тоді сюди вставляється посилання /pub?output=csv
 const WORKLOAD_SHEET_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSXMM6dtVDSj8xPdmINrZmTz5jB7tXTHREmPF6YHqLt9P61bZmE0JdOc7uK1wfdnXkO8sDRNSok7vpB/pub?single=true&output=csv";
+// Файл завантаженості має кілька вкладок (АР + КБ + Інженери...). Читаємо кожну за НАЗВОЮ через gviz і обʼєднуємо.
+const WORKLOAD_FILE_ID="1wnq6rV_pkCNosTR5_4v_TT6mJH8Z5wcxaWqwHRVeot0";
+const WORKLOAD_TABS_DEFAULT=["АР","КБ","Інженери"];
+// опубліковані (Файл → Опублікувати в Інтернеті → CSV) gid окремих вкладок завантаженості
+const WORKLOAD_TAB_GID={"КБ":"509839026","Інженери":"369773556"};
+function workloadTabs(){ const s=lsGet(LS.wltabs); if(s){ const a=s.split(",").map(x=>x.trim()).filter(Boolean); if(a.length) return a; } return WORKLOAD_TABS_DEFAULT.slice(); }
 // Посилання «відкрити таблицю» (для кнопок)
 const SKILL_SHEET_EDIT="https://docs.google.com/spreadsheets/d/1x109y8PxjEj8zltDR0xtRxYERr0E1Zpno6P0m7WWtBs/edit";
 const WORKLOAD_SHEET_EDIT="https://docs.google.com/spreadsheets/d/1wnq6rV_pkCNosTR5_4v_TT6mJH8Z5wcxaWqwHRVeot0/edit";
@@ -1167,22 +1173,56 @@ function workloadCandidates(raw){
   }
   return csvCandidates(raw);
 }
-async function loadWorkload(){
-  const raw=workloadUrl(); if(!raw){ wlState="snapshot"; return; }
-  for(const url of workloadCandidates(raw)){
-    try{
-      const res=await fetch(bustUrl(url),{redirect:"follow",cache:"no-store"}); if(!res.ok) throw 0;
-      const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text.slice(0,200))) throw 0;
-      const map=parseWorkloadCSV(text);  // кине помилку, якщо це не таблиця завантаженості (напр. «Проєкти»)
-      applyWeekGrid(buildWeekGrid(csvWeekLabels));   // сітка тижнів — з таблиці (нові колонки зʼявляться самі)
-      // жива «АР» = повний актуальний склад: ПОВНІСТЮ замінюємо, щоб і додавання, і видалення
-      // людей у таблиці підтягувались у застосунок. Живий парсер читає «?», проєкти й суфікси в іменах.
-      for(const k in WL_MAP) delete WL_MAP[k];
-      Object.assign(WL_MAP,map);
-      wlState="live"; return;
-    }catch(e){}
+// обʼєднати карти завантаженості з різних вкладок (АР/КБ/Інженери). Люди зазвичай лише в одній вкладці;
+// якщо хтось трапиться у двох — зливаємо проєкти й тижні (підтверджене має пріоритет над «?»).
+function mergeWL(dst, src){
+  const prec=x=> x==="vac"?4:(typeof x==="number"&&x>0)?3:x==="?"?2:0;
+  const mg=(x,y)=> (typeof x==="number"&&typeof y==="number")?+(x+y).toFixed(4):(prec(x)>=prec(y)?x:y);
+  for(const k in src){
+    if(!dst[k]){ dst[k]=src[k]; continue; }
+    const a=dst[k], b=src[k];
+    a.projects=[...new Set([...(a.projects||[]),...(b.projects||[])])];
+    a.projectWeeks=[...(a.projectWeeks||[]),...(b.projectWeeks||[])];
+    const n=Math.max(a.weeks.length,b.weeks.length), w=[];
+    for(let i=0;i<n;i++){ w[i]=mg(a.weeks[i]!=null?a.weeks[i]:0, b.weeks[i]!=null?b.weeks[i]:0); }
+    a.weeks=w;
   }
-  // не вдалося наживо (недоступно / не та вкладка) — лишаємо знімок як є, з «?» і проєктами
+}
+// усі можливі адреси для однієї вкладки за назвою: gviz (за назвою аркуша) + для «АР» ще й опублікований CSV
+function workloadTabUrls(tab){
+  const n=encodeURIComponent(tab);
+  const giz=`https://docs.google.com/spreadsheets/d/${WORKLOAD_FILE_ID}/gviz/tq?tqx=out:csv&sheet=${n}`;
+  const pubBase=(WORKLOAD_SHEET_URL||"").replace(/\?.*$/,"");   // .../pub
+  // Для «АР» СПЕРШУ опубліковане посилання (швидке й завжди свіже), лише потім gviz
+  // (gviz кешується на боці Google і може віддавати старі дані при відкритті).
+  if(/^ар$/i.test(tab)){ const raw=workloadUrl(); const pubs=raw?workloadCandidates(raw):[]; return [...new Set([...pubs, giz])]; }
+  // КБ/Інженери — опубліковані CSV за gid (надійно й свіжо), gviz як запас
+  const gid=WORKLOAD_TAB_GID[tab];
+  if(gid && pubBase) return [`${pubBase}?gid=${gid}&single=true&output=csv`, giz];
+  return [giz];
+}
+async function loadWorkload(){
+  const tabs=workloadTabs();
+  const merged={}; let gotAny=false; let gridLabels=null;
+  for(const tab of tabs){
+    for(const url of workloadTabUrls(tab)){
+      try{
+        const res=await fetch(bustUrl(url),{redirect:"follow",cache:"no-store"}); if(!res.ok) throw 0;
+        const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text.slice(0,200))) throw 0;
+        const map=parseWorkloadCSV(text);   // кине помилку, якщо вкладка не є таблицею завантаженості
+        if(!gridLabels && csvWeekLabels && csvWeekLabels.length) gridLabels=csvWeekLabels.slice(); // сітку тижнів задає перша успішна вкладка
+        mergeWL(merged, map);
+        gotAny=true; break;                  // вкладку прочитано — далі до наступної
+      }catch(e){}
+    }
+  }
+  if(gotAny){
+    if(gridLabels){ csvWeekLabels=gridLabels; applyWeekGrid(buildWeekGrid(gridLabels)); }
+    for(const k in WL_MAP) delete WL_MAP[k];
+    Object.assign(WL_MAP, merged);
+    wlState="live"; return;
+  }
+  // жодної вкладки наживо — лишаємо вбудований знімок
   wlState="snapshot";
 }
 async function refreshAll(silent){
@@ -2258,13 +2298,19 @@ function updateFooter(){
   document.getElementById("footer").innerHTML=
     'Джерела: <a href="'+SKILL_SHEET_EDIT+'" target="_blank" rel="noopener">Скіл-матриця ↗</a> · '+
     '<a href="'+WORKLOAD_SHEET_EDIT+'" target="_blank" rel="noopener">Завантаженість ↗</a> · '+
-    'завантаженість: '+wlTxt+
-    ' · <a href="#" id="setWlUrl">налаштувати посилання</a>';
+    'завантаженість: '+wlTxt+' ('+esc(workloadTabs().join(", "))+')'+
+    ' · <a href="#" id="setWlUrl">посилання</a>'+
+    ' · <a href="#" id="setWlTabs">вкладки</a>';
   const s=document.getElementById("setWlUrl");
   if(s) s.onclick=(e)=>{ e.preventDefault();
     const cur=lsGet(LS.wlurl)||WORKLOAD_SHEET_URL||"";
     const v=prompt("Вставте опубліковане CSV-посилання таблиці завантаженості\n(Файл → Опублікувати в Інтернеті → CSV):",cur);
     if(v!=null){ if(v.trim()) lsSet(LS.wlurl,v.trim()); else { try{localStorage.removeItem(LS.wlurl)}catch(_){} } refreshAll(false); }
+  };
+  const st=document.getElementById("setWlTabs");
+  if(st) st.onclick=(e)=>{ e.preventDefault();
+    const v=prompt("Назви вкладок таблиці завантаженості через кому (застосунок об'єднає всі):",workloadTabs().join(", "));
+    if(v!=null){ if(v.trim()) lsSet(LS.wltabs,v.trim()); else { try{localStorage.removeItem(LS.wltabs)}catch(_){} } refreshAll(false); }
   };
 }
 
