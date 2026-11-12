@@ -2115,8 +2115,11 @@ function csBrowserHTML(sl,idx){
   const c=csComplete(p,sl,"optimistic");
   const reason = av!=="free" ? csGapReason(p,sl,"optimistic") : null;
   const rTxt = reason?` <span style="color:var(--mut)">· ${esc(reason)}</span>`:"";
-  const availTxt = av==="free"?`<span style="color:${availColor('free')}">без пауз · готово ${WL_WEEKS[c.finish]}</span>`
-    : av==="maybe"?`<span style="color:${availColor('maybe')}">розтягнення +${c.gaps} тиж. · готово ${WL_WEEKS[c.finish]}</span>${rTxt}`
+  const startW=WL_STARTS[Math.min(s+sl.offset, WL_STARTS.length-1)];
+  const finW=(c.finish>=0)?WL_ENDS[Math.min(c.finish, WL_ENDS.length-1)]:null;
+  const span = finW?`старт ${fmtDate(startW)} → кінець ${fmtDate(finW)}`:"";
+  const availTxt = av==="free"?`<span style="color:${availColor('free')}">${span} · без пауз</span>`
+    : av==="maybe"?`<span style="color:${availColor('maybe')}">${span} · розтягнення +${c.gaps} тиж.</span>${rTxt}`
     : `<span style="color:${availColor('busy')}">не встигає в горизонті</span>${rTxt}`;
   return `<div class="cs-brow">
     <div class="cs-brow-h">${esc(csSlotLabel(sl))} ${headCnt}</div>
@@ -2214,8 +2217,11 @@ function renderTeam(){
       const c=csComplete(p,sl,"optimistic");
       const reason = av!=="free" ? csGapReason(p,sl,"optimistic") : null;
       const rTxt = reason?`<div class="cs-reason">${esc(reason)}</div>`:"";
-      const avTxt = av==="free"?`<span style="color:${availColor('free')}">без пауз · ${WL_WEEKS[c.finish]}</span>`
-        : av==="maybe"?`<span style="color:${availColor('maybe')}">+${c.gaps} тиж. · ${WL_WEEKS[c.finish]}</span>${rTxt}`
+      const mStart=WL_STARTS[Math.min(csState.startIdx+sl.offset, WL_STARTS.length-1)];
+      const mFin=(c.finish>=0)?WL_ENDS[Math.min(c.finish, WL_ENDS.length-1)]:null;
+      const mSpan=mFin?`старт ${fmtDate(mStart)} → кінець ${fmtDate(mFin)}`:"";
+      const avTxt = av==="free"?`<span style="color:${availColor('free')}">${mSpan} · без пауз</span>`
+        : av==="maybe"?`<span style="color:${availColor('maybe')}">${mSpan} · +${c.gaps} тиж.</span>${rTxt}`
         : `<span style="color:${availColor('busy')}">не встигає</span>${rTxt}`;
       html+=`<div class="cs-tm">
         <div class="cs-tm-role">${esc(shortRole(sl))}</div>
