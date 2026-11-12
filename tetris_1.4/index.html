@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TETRIS · Підбір команди</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg:#0f1420; --panel:#161d2e; --panel2:#1d2740; --line:#2a3550;
@@ -653,13 +654,17 @@ const RUBRIC={
    {lo:70,hi:100,name:"Високий рівень",groups:[
      {t:"",items:["Складні монтажі; AI-інструменти","Світлові ефекти (God Rays, Volumetric Light), атмосферні ефекти, Lighting Effects","Dodge and Burn для світлотіні","Actions (автоматизація повторюваних завдань)"]}]}]}
 };
-const LS={url:"sm_sheet_url",team:"sm_team",wlurl:"sm_wl_url",wltabs:"sm_wl_tabs"};
+const LS={url:"sm_sheet_url",team:"sm_team",wlurl:"sm_wl_url",wltabs:"sm_wl_tabs",wlxlsx:"sm_wl_xlsx"};
 // Скіл-матриця — опублікований CSV (працює наживо)
 const DEFAULT_SHEET_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ6oyzxClKYGMfRwRbdIiQiL7jfkjl316sE3ClwaQ2euRhetyXP-tg43wwYO2gscNQrwI9PYIbos8oS/pub?gid=1643796662&single=true&output=csv";
 // Завантаженість — опублікований CSV. Порожньо, доки таблицю не опубліковано (Файл → Опублікувати в Інтернеті → CSV). Тоді сюди вставляється посилання /pub?output=csv
 const WORKLOAD_SHEET_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSXMM6dtVDSj8xPdmINrZmTz5jB7tXTHREmPF6YHqLt9P61bZmE0JdOc7uK1wfdnXkO8sDRNSok7vpB/pub?single=true&output=csv";
 // Файл завантаженості має кілька вкладок (АР + КБ + Інженери...). Читаємо кожну за НАЗВОЮ через gviz і обʼєднуємо.
 const WORKLOAD_FILE_ID="1wnq6rV_pkCNosTR5_4v_TT6mJH8Z5wcxaWqwHRVeot0";
+// Опублікований .xlsx усього документа — читаємо через нього за НАЗВАМИ вкладок,
+// з розгортанням обʼєднаних клітинок (відпустки!). CSV лишається запасним варіантом.
+const WORKLOAD_XLSX_URL="https://docs.google.com/spreadsheets/d/e/2PACX-1vSXMM6dtVDSj8xPdmINrZmTz5jB7tXTHREmPF6YHqLt9P61bZmE0JdOc7uK1wfdnXkO8sDRNSok7vpB/pub?output=xlsx";
+function workloadXlsxUrl(){ return lsGet(LS.wlxlsx) || WORKLOAD_XLSX_URL || ""; }
 const WORKLOAD_TABS_DEFAULT=["АР","КБ","Інженери"];
 // опубліковані (Файл → Опублікувати в Інтернеті → CSV) gid окремих вкладок завантаженості
 const WORKLOAD_TAB_GID={"КБ":"509839026","Інженери":"369773556"};
@@ -1101,9 +1106,10 @@ async function loadFromUrl(rawUrl,silent){
 
 /* ---------- workload: live load + parser ---------- */
 let wlState="snapshot"; // 'snapshot' | 'live' | 'error'
+let wlVia="";           // 'xlsx' | 'csv' — чим саме прочитано завантаженість
 function workloadUrl(){ return lsGet(LS.wlurl) || WORKLOAD_SHEET_URL || ""; }
-function parseWorkloadCSV(text){
-  const rows=parseCSV(text);
+function parseWorkloadCSV(text){ return parseWorkloadRows(parseCSV(text)); }
+function parseWorkloadRows(rows){
   let hi=-1;
   for(let i=0;i<rows.length;i++){ if(rows[i].some(c=>/ім['’]?я\s+прізвищ/i.test(String(c)))) { hi=i; break; } }
   if(hi<0) throw new Error("не знайдено таблицю розподілу ресурсів");
@@ -1201,29 +1207,83 @@ function workloadTabUrls(tab){
   if(gid && pubBase) return [`${pubBase}?gid=${gid}&single=true&output=csv`, giz];
   return [giz];
 }
-async function loadWorkload(){
-  const tabs=workloadTabs();
-  const merged={}; let gotAny=false; let gridLabels=null;
-  for(const tab of tabs){
+// нормалізація мітки тижня для зіставлення колонок між вкладками
+function normWk(lb){ return String(lb||"").replace(/\s+/g,"").replace(/[-—]/g,"–"); }
+// рядки аркуша .xlsx із РОЗГОРНУТИМИ обʼєднаними клітинками (значення лівої-верхньої заповнює весь діапазон) — так читаються відпустки
+function xlsxSheetRows(ws){
+  const ref=ws['!ref']; if(!ref) return [];
+  const R=XLSX.utils.decode_range(ref);
+  const val=cell=> cell==null ? "" : (cell.w!=null ? cell.w : (cell.v!=null?cell.v:""));
+  const rows=[];
+  for(let r=R.s.r;r<=R.e.r;r++){ const row=[];
+    for(let c=R.s.c;c<=R.e.c;c++){ row.push(val(ws[XLSX.utils.encode_cell({r,c})])); }
+    rows.push(row);
+  }
+  (ws['!merges']||[]).forEach(m=>{ const v=val(ws[XLSX.utils.encode_cell({r:m.s.r,c:m.s.c})]);
+    for(let r=m.s.r;r<=m.e.r;r++) for(let c=m.s.c;c<=m.e.c;c++){ const rr=r-R.s.r, cc=c-R.s.c;
+      if(rows[rr] && cc>=0 && cc<rows[rr].length) rows[rr][cc]=v; }
+  });
+  return rows.map(row=>row.map(v=> v==null?"":String(v)));
+}
+// читання завантаженості з опублікованого .xlsx (за НАЗВАМИ вкладок, з розгортанням обʼєднань)
+async function loadWorkloadXlsx(){
+  if(typeof XLSX==="undefined") return null;
+  const url=workloadXlsxUrl(); if(!url) return null;
+  let wb;
+  try{ const res=await fetch(bustUrl(url),{redirect:"follow",cache:"no-store"}); if(!res.ok) return null;
+    wb=XLSX.read(new Uint8Array(await res.arrayBuffer()),{type:"array"}); }catch(e){ return null; }
+  if(!wb||!wb.SheetNames||!wb.SheetNames.length) return null;
+  const norm=s=>String(s||"").replace(/\s+/g,"").toLowerCase();
+  const byName={}; wb.SheetNames.forEach(nm=>byName[norm(nm)]=nm);
+  const results=[];
+  for(const tab of workloadTabs()){
+    const real=byName[norm(tab)]; if(!real) continue;
+    const ws=wb.Sheets[real]; if(!ws) continue;
+    try{ const map=parseWorkloadRows(xlsxSheetRows(ws)); results.push({labels:(csvWeekLabels||[]).slice(), map}); }catch(e){}
+  }
+  return results.length?results:null;
+}
+// запасний варіант — читання вкладок через CSV
+async function loadWorkloadCSVResults(){
+  const results=[];
+  for(const tab of workloadTabs()){
     for(const url of workloadTabUrls(tab)){
       try{
         const res=await fetch(bustUrl(url),{redirect:"follow",cache:"no-store"}); if(!res.ok) throw 0;
         const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text.slice(0,200))) throw 0;
-        const map=parseWorkloadCSV(text);   // кине помилку, якщо вкладка не є таблицею завантаженості
-        if(!gridLabels && csvWeekLabels && csvWeekLabels.length) gridLabels=csvWeekLabels.slice(); // сітку тижнів задає перша успішна вкладка
-        mergeWL(merged, map);
-        gotAny=true; break;                  // вкладку прочитано — далі до наступної
+        const map=parseWorkloadRows(parseCSV(text));
+        results.push({labels:(csvWeekLabels||[]).slice(), map}); break;
       }catch(e){}
     }
   }
-  if(gotAny){
-    if(gridLabels){ csvWeekLabels=gridLabels; applyWeekGrid(buildWeekGrid(gridLabels)); }
-    for(const k in WL_MAP) delete WL_MAP[k];
-    Object.assign(WL_MAP, merged);
-    wlState="live"; return;
-  }
-  // жодної вкладки наживо — лишаємо вбудований знімок
-  wlState="snapshot";
+  return results;
+}
+async function loadWorkload(){
+  let results = await loadWorkloadXlsx();     // 1) .xlsx — назви вкладок + розгорнуті обʼєднання (відпустки)
+  wlVia = results ? "xlsx" : "";
+  if(!results){ results = await loadWorkloadCSVResults(); wlVia = (results&&results.length)?"csv":""; }   // 2) запас — CSV
+  if(!results || !results.length){ wlState="snapshot"; return; }
+  // спільна сітка тижнів = обʼєднання міток усіх вкладок; ремап кожної вкладки ЗА МІТКОЮ (не за позицією)
+  const gridLabels=[], seen=new Set();
+  results.forEach(r=> (r.labels||[]).forEach(lb=>{ const k=normWk(lb); if(k && !seen.has(k)){ seen.add(k); gridLabels.push(lb); } }));
+  const gi={}; gridLabels.forEach((lb,i)=> gi[normWk(lb)]=i);
+  const NG=gridLabels.length;
+  const merged={};
+  results.forEach(r=>{
+    const idxMap=(r.labels||[]).map(lb=> gi[normWk(lb)]);
+    const remap=arr=>{ const out=new Array(NG).fill(0); (arr||[]).forEach((v,i)=>{ const g=idxMap[i]; if(g!=null) out[g]=v; }); return out; };
+    const rm={};
+    for(const k in r.map){ const w=r.map[k];
+      rm[k]={name:w.name,group:w.group,projects:w.projects,weeks:remap(w.weeks),
+        projectWeeks:(w.projectWeeks||[]).map(pw=>({n:pw.n,w:remap(pw.w),role:pw.role||"",zone:pw.zone||""}))};
+    }
+    mergeWL(merged, rm);
+  });
+  csvWeekLabels=gridLabels;
+  applyWeekGrid(buildWeekGrid(gridLabels));
+  for(const k in WL_MAP) delete WL_MAP[k];
+  Object.assign(WL_MAP, merged);
+  wlState="live";
 }
 async function refreshAll(silent){
   await loadWorkload();                 // спершу оновлюємо завантаженість (WL_MAP)
@@ -2300,7 +2360,7 @@ paintScope();
 
 /* ---------- footer with source links ---------- */
 function updateFooter(){
-  const wlTxt = wlState==="live" ? '<b style="color:var(--ok)">наживо</b>' : wlState==="error" ? '<b style="color:var(--bad)">знімок (не вдалося оновити)</b>' : '<b>знімок</b>';
+  const wlTxt = wlState==="live" ? ('<b style="color:var(--ok)">наживо</b>'+(wlVia?' <span style="color:var(--mut)">('+wlVia+')</span>':'')) : wlState==="error" ? '<b style="color:var(--bad)">знімок (не вдалося оновити)</b>' : '<b>знімок</b>';
   document.getElementById("footer").innerHTML=
     'Джерела: <a href="'+SKILL_SHEET_EDIT+'" target="_blank" rel="noopener">Скіл-матриця ↗</a> · '+
     '<a href="'+WORKLOAD_SHEET_EDIT+'" target="_blank" rel="noopener">Завантаженість ↗</a> · '+
